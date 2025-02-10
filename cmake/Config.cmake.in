@@ -1,0 +1,7 @@
+@PACKAGE_INIT@
+
+include("${CMAKE_CURRENT_LIST_DIR}/GlobalSettingsTargets.cmake")
+set(LIBGLOBALSETTINGS_INCLUDE_DIR "${PACKAGE_PREFIX_DIR}/include/@PROJECT_NAME@")
+set(LIBGLOBALSETTINGS_LIBRARIES "globalsettings" )
+
+check_required_components("@PROJECT_NAME@")

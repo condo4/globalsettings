@@ -81,6 +81,8 @@ public:
     bool set(const std::string &key, SettingValue value, const std::string &category = "");
 
     void bypass(); // Internal usage; except settings command line tool, you shouldn't use it
+    void setId(const std::string &newid);
+
 
 private:
     std::unique_ptr<GlobalSettingsPrivate> m_ptr;

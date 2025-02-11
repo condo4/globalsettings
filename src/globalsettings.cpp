@@ -24,11 +24,17 @@ class GlobalSettingsPrivate {
     std::map<SettingKey, SettingValue> m_data;
     std::vector<std::string> m_files;
     std::map<SettingKey, std::string> m_owner;
+    std::string m_id;
     bool m_bypass {false};
 
 public:
     GlobalSettingsPrivate(GlobalSettings *parent)
-        : m_parent(parent) {}
+        : m_parent(parent) {
+        char result[PATH_MAX];
+        ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
+        std::string binary = std::string(result, (count > 0) ? count : 0);
+        std::filesystem::path bin = binary;
+        m_id = bin.filename();
 
     void parseFile(const std::string &filename, std::map<SettingKey, SettingValue> &data)
     {
@@ -135,6 +141,7 @@ bool GlobalSettings::set(const std::string &key, SettingValue value, const std::
 {
     // Check if variable is writable
     SettingKey pkey(category, key);
+    std::string id;
 
     if(!m_ptr->m_owner.count(pkey))
     {
@@ -142,33 +149,16 @@ bool GlobalSettings::set(const std::string &key, SettingValue value, const std::
         return false;
     }
 
-    char result[PATH_MAX];
-    ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
-    std::string binary = std::string(result, (count > 0) ? count : 0);
-    std::filesystem::path bin = binary;
-    std::string id;
-
     if(m_ptr->m_bypass)
     {
         id = m_ptr->m_owner[pkey];
     }
-    else if(m_ptr->m_owner[pkey].starts_with("/"))
-    {
-        id = binary;
-        std::replace(id.begin(), id.end(), '/', '_');
-        if(m_ptr->m_owner[pkey] != binary)
-        {
-            std::cerr << "Variable " << category << ">" << key << " is not own by " << binary << std::endl;
-            return false;
-        }
-    }
     else
     {
-        id = bin.filename();
-
+        id = m_ptr->m_id;
         if(m_ptr->m_owner[pkey] != id)
         {
-            std::cerr << "Variable " << category << ">" << key << " is not own by " << bin.filename() << std::endl;
+            std::cerr << "Variable " << category << ">" << key << " is not own by " << m_ptr->m_id << std::endl;
             return false;
         }
     }
@@ -195,11 +185,7 @@ bool GlobalSettings::set(const std::string &key, SettingValue value, const std::
 
 void GlobalSettings::bypass()
 {
-    char result[PATH_MAX];
-    ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
-    std::string binary = std::string(result, (count > 0) ? count : 0);
-    std::filesystem::path bin = binary;
-    if(bin.filename() == "settings")
+    if(m_ptr->m_id == "settings")
     {
         m_ptr->m_bypass = true;
     }

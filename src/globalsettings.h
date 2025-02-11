@@ -27,7 +27,7 @@ static inline bool is_numeric(const std::string& str) {
            (str[0] == '-' || std::isdigit(str[0]));
 }
 
-SettingValue makeValue(const std::string &value)
+static inline SettingValue makeValue(const std::string &value)
 {
     if(value.starts_with('"') || value.starts_with('\''))
     {

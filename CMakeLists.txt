@@ -43,9 +43,9 @@ if(WITH_PYTHON)
         string(REGEX REPLACE "(lib)(python.*)(.so)" "\\2" PYCODE ${PYTHON_LIBRARY_FILENAME})
         set(PYTHONPATH /usr/lib/${PYCODE}/site-packages)
     endif()
-    pybind11_add_module(pyglobalsettings python/bindings.cpp)
-    target_link_libraries(pyglobalsettings PUBLIC globalsettings)
-    install(TARGETS pyglobalsettings LIBRARY DESTINATION ${PYTHONPATH})
+    pybind11_add_module(GlobalSettings python/bindings.cpp)
+    target_link_libraries(GlobalSettings PUBLIC globalsettings)
+    install(TARGETS GlobalSettings LIBRARY DESTINATION ${PYTHONPATH})
 endif(WITH_PYTHON)
 
 

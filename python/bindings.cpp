@@ -37,7 +37,7 @@ void PyGlobalSettings::add_python_binding(pybind11::module &m)
 }
 
 
-PYBIND11_MODULE(pyglobalsettings, m) {
+PYBIND11_MODULE(GlobalSettings, m) {
     m.doc() =  R"pbdoc(
         Python bindings for GlobalSettings
     )pbdoc";

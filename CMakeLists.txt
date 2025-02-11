@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 
-project(globalsettings VERSION 1.0.0 LANGUAGES CXX)
+project(globalsettings VERSION 1.0.1 LANGUAGES CXX)
 
 option(WITH_PYTHON "Create python binding" OFF)
 
@@ -41,10 +41,11 @@ if(WITH_PYTHON)
     if ("${PYTHONPATH}" STREQUAL "")
         string(REGEX MATCH "libpython(.*).so" PYTHON_LIBRARY_FILENAME ${PYTHON_LIBRARY})
         string(REGEX REPLACE "(lib)(python.*)(.so)" "\\2" PYCODE ${PYTHON_LIBRARY_FILENAME})
-        set(PYTHONPATH /usr/lib/${PYCODE}/site-packages)
+        set(PYTHONPATH /usr/lib/${PYCODE}/)
     endif()
+
     pybind11_add_module(GlobalSettings python/bindings.cpp)
-    target_link_libraries(GlobalSettings PUBLIC globalsettings)
+    target_link_libraries(GlobalSettings PUBLIC globalsettings ${PYTHON_LIBRARY})
     install(TARGETS GlobalSettings LIBRARY DESTINATION ${PYTHONPATH})
 endif(WITH_PYTHON)
 

@@ -1,6 +1,7 @@
 #ifndef GLOBALSETTINGS_H
 #define GLOBALSETTINGS_H
 
+#include <functional>
 #include <memory>
 #include <variant>
 #include <string>
@@ -83,6 +84,7 @@ public:
     void bypass(); // Internal usage; except settings command line tool, you shouldn't use it
     void setId(const std::string &newid);
 
+    void setNotifier(const std::function<void(const std::string&, const std::string&, SettingValue)>& callback);
 
 private:
     std::unique_ptr<GlobalSettingsPrivate> m_ptr;

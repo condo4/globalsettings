@@ -9,6 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_library(globalsettings SHARED
   src/globalsettings.h src/globalsettings.cpp
+  src/changewatcher.h src/changewatcher.cpp
 )
 set_target_properties(globalsettings PROPERTIES VERSION ${CMAKE_PROJECT_VERSION} SOVERSION 1)
 set_target_properties(globalsettings PROPERTIES PUBLIC_HEADER "src/globalsettings.h")

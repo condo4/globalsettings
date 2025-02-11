@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <climits>
 #include <unistd.h>
+#include "changewatcher.h"
 
 static inline void trim(std::string & str)
 {
@@ -22,10 +23,11 @@ class GlobalSettingsPrivate {
     friend class GlobalSettings;
     GlobalSettings *m_parent;
     std::map<SettingKey, SettingValue> m_data;
-    std::vector<std::string> m_files;
+    ChangeWatcher m_watcher;
     std::map<SettingKey, std::string> m_owner;
     std::string m_id;
     bool m_bypass {false};
+    std::vector<std::function<void(const std::string&, const std::string&, SettingValue)>> m_notifier;
 
 public:
     GlobalSettingsPrivate(GlobalSettings *parent)
@@ -36,7 +38,12 @@ public:
         std::filesystem::path bin = binary;
         m_id = bin.filename();
 
-    void parseFile(const std::string &filename, std::map<SettingKey, SettingValue> &data)
+        m_watcher.setFileAdded([this](const std::string path){ refreshDirectory(path); });
+        m_watcher.setFileRemoved([this](const std::string path){ refreshAll(); });
+        m_watcher.setFileWrited([this](const std::string path){ refreshFile(path); });
+    }
+
+    void parseFile(const std::string &filename, std::map<SettingKey, SettingValue> &data, bool watch = false)
     {
         if(!std::filesystem::exists(filename))
         {
@@ -46,9 +53,9 @@ public:
         if(pfile.filename().string().starts_with(".")) return;
         if(pfile.extension() != ".conf") return;
 
-        if(!list_contains(m_files, filename))
+        if(watch)
         {
-            m_files.push_back(filename);
+            m_watcher.watch(filename);
         }
 
         std::ifstream file(filename);
@@ -88,29 +95,76 @@ public:
         }
     }
 
-    void parseConf(const std::string &fconf, std::map<SettingKey, SettingValue> &data)
+    void parseDir(const std::string &dconf, std::map<SettingKey, SettingValue> &data, bool watch)
     {
-        if(std::filesystem::exists(fconf))
-        {
-            parseFile(fconf, data);
-        }
-        std::string dconf = fconf + ".d";
         if(std::filesystem::exists(dconf) && std::filesystem::is_directory(dconf))
         {
             for (const auto& entry : std::filesystem::directory_iterator(dconf))
             {
                 if(entry.is_directory()) continue;
-                parseFile(std::filesystem::absolute(entry.path()), data);
+                parseFile(std::filesystem::absolute(entry.path()), data, watch);
             }
         }
+    }
+
+    void parseConf(const std::string &fconf, std::map<SettingKey, SettingValue> &data, bool watch)
+    {
+        if(std::filesystem::exists(fconf))
+        {
+            parseFile(fconf, data, watch);
+        }
+        std::string dconf = fconf + ".d";
+        parseDir(dconf, data, watch);
+        if(watch)
+        {
+            m_watcher.watch(dconf);
+        }
+    }
+
+    void refreshData(const std::map<SettingKey, SettingValue> &cust_data)
+    {
+        for(const auto& [key, value] : cust_data) {
+            if(!m_data.contains(key) || m_data[key] != value)
+            {
+                // New ITEM OR Data changed
+                m_data[key] = value;
+                for(auto &notifier: m_notifier)
+                {
+                    notifier(key.first, key.second, value);
+                }
+                continue;
+            }
+        }
+    }
+
+    void refreshFile(const std::string &file)
+    {
+        std::map<SettingKey, SettingValue> cust_data;
+        parseFile(file, cust_data);
+        refreshData(cust_data);
+    }
+
+    void refreshDirectory(const std::string &dirname)
+    {
+        std::map<SettingKey, SettingValue> cust_data;
+        parseDir(dirname, cust_data, true);
+        refreshData(cust_data);
+    }
+
+    void refreshAll()
+    {
+        std::map<SettingKey, SettingValue> cust_data;
+        parseConf("/etc/system.conf", cust_data, false);
+        parseConf("/var/system.conf", cust_data, true);
+        refreshData(cust_data);
     }
 };
 
 GlobalSettings::GlobalSettings()
     : m_ptr(std::make_unique<GlobalSettingsPrivate>(this))
 {
-    m_ptr->parseConf("/etc/system.conf", m_ptr->m_data);
-    m_ptr->parseConf("/var/system.conf", m_ptr->m_data);
+    m_ptr->parseConf("/etc/system.conf", m_ptr->m_data, false);
+    m_ptr->parseConf("/var/system.conf", m_ptr->m_data, true);
 }
 
 const std::map<SettingKey, SettingValue> &GlobalSettings::data()
@@ -191,5 +245,13 @@ void GlobalSettings::bypass()
     }
 }
 
-GlobalSettings::~GlobalSettings() = default;
+void GlobalSettings::setNotifier(const std::function<void (const std::string &, const std::string &, SettingValue)> &callback)
+{
+    m_ptr->m_notifier.push_back(callback);
+    m_ptr->m_watcher.setEnable(true);
+}
 
+GlobalSettings::~GlobalSettings()
+{
+    m_ptr->m_watcher.setEnable(false);
+}

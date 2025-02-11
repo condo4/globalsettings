@@ -237,6 +237,16 @@ bool GlobalSettings::set(const std::string &key, SettingValue value, const std::
     return true;
 }
 
+std::string GlobalSettings::id()
+{
+    return m_ptr->m_id;
+}
+
+void GlobalSettings::setId(const std::string &newid)
+{
+    m_ptr->m_id = newid;
+}
+
 void GlobalSettings::bypass()
 {
     if(m_ptr->m_id == "settings")

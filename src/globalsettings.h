@@ -81,9 +81,10 @@ public:
     SettingValue get(const std::string &key, const std::string &category = "", SettingValue def = SettingValue());
     bool set(const std::string &key, SettingValue value, const std::string &category = "");
 
-    void bypass(); // Internal usage; except settings command line tool, you shouldn't use it
+    std::string id();
     void setId(const std::string &newid);
 
+    void bypass(); // Internal usage; except settings command line tool, you shouldn't use it
     void setNotifier(const std::function<void(const std::string&, const std::string&, SettingValue)>& callback);
 
 private:

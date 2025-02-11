@@ -68,10 +68,11 @@ The system reads configuration from:
 
 ## Permissions
 
-Settings must be declared writable using @key = owner_id[BR]
-The owner should be the binary filename of the application[BR]
-Only the declared owner can modify the setting if the program name is the good one[BR]
-[BR]
+Settings must be declared writable using @key = owner_id  
+The owner should be the binary filename of the application  
+Only the declared owner can modify the setting if the program name is the good one
+
+
 The settings command-line tool can bypass ownership restrictions but must used ONLY for debug usage
 
 ## Value Types

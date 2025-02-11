@@ -70,3 +70,5 @@ install(
     EXPORT "GlobalSettingsTargets"
     DESTINATION "lib/cmake/${PROJECT_NAME}"
 )
+
+include(cmake/CPack.cmake)

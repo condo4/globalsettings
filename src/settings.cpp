@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
             {
                 head = "[" + key.first + "]";
             }
-            std::cout << "> " << head << key.second << " = " << std::visit(setting_value_functor(), value) << std::endl;
+            std::cout << "> " << head << key.second << " = " << valueToStr(value) << std::endl;
         });
     }
     else
@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
         }
         if(argc == 2)
         {
-            std::cout << std::visit(setting_value_functor(), settings.get(gkey, category)) << std::endl;
+            std::cout << valueToStr(settings.get(gkey, category)) << std::endl;
         }
         else if(argc == 3)
         {

@@ -17,7 +17,7 @@ Settings are stored in configuration files with the `.conf` extension. The file 
 - Key-value pairs: `key = value`
 - Owner declarations: `@key = owner_id`
 
-### Value Types
+### Value Types SettingValue
 - Strings: `key = "value"` or `key = value`
 - Numbers: `key = 42` or `key = 3.14`
 - Booleans: `key = true/false` or `key = on/off`
@@ -61,14 +61,34 @@ settings.set("key", value, "category");
 settings.set("key", value);
 ```
 
+### Utility with SettingValue type: utilssettings.h
+
+makeValue: provide a way to convert std::string into SettingValue managing numeric, bool and string conversion
+
+```cpp
+#include <utilssettings.h>
+
+SettingValue v1 = makeValue("42");      // Integer
+SettingValue v2 = makeValue("3.14");    // Double
+SettingValue v3 = makeValue("true");    // Boolean
+SettingValue v4 = makeValue("text");    // String
+```
+
+valueToStr: provide a way to convert SettingValue into std::string to display
+```cpp
+#include <utilssettings.h>
+
+std::cout << valueToStr(v1) << std::endl;
+```
+
 ### Change Notifications and print helper function
 ```cpp
 #include <globalsettings.h>
-#include <utilssettings.h> // For setting_value_functor()
+#include <utilssettings.h> // For valueToStr()
 // Set a notification handler
 settings.setNotifier([](const std::string& category, const std::string& key, SettingValue value) {
     // Handle setting change
-    std::cout << category << " | " << key << " changed to " << std::visit(setting_value_functor(), value) << std::endl;
+    std::cout << category << " | " << key << " changed to " << valueToStr(value) << std::endl;
 });
 ```
 

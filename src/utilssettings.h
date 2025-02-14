@@ -3,14 +3,33 @@
 
 #include "globalsettings.h"
 
-struct setting_value_functor {
+/**
+ * @brief Functor to convert SettingValue variants to string
+ *
+ * Provides string conversion for all supported setting value types
+ */
+struct settingValueFunctor {
     std::string operator()(const std::string &x) const { return x; }
     std::string operator()(int x) const { return std::to_string(x); }
     std::string operator()(double x) const { return std::to_string(x); }
     std::string operator()(bool x) const { return x ? "true" : "false"; }
 };
 
+/**
+ * @brief Convert a SettingValue into a string for display
+ * @param value Input SettingValue to convert
+ * @return std::string containing the converted value
+ */
+static inline std::string valueToStr(const SettingValue &value)
+{
+    return std::visit(settingValueFunctor(), value);
+}
 
+/**
+ * @brief Check if a string represents a valid numeric value
+ * @param str String to check
+ * @return true if string is numeric, false otherwise
+ */
 static inline bool is_numeric(const std::string& str) {
     return !str.empty() &&
            str.find_first_not_of("0123456789.-") == std::string::npos &&
@@ -19,6 +38,18 @@ static inline bool is_numeric(const std::string& str) {
            (str[0] == '-' || std::isdigit(str[0]));
 }
 
+/**
+ * @brief Convert a string to appropriate SettingValue type
+ * @param value Input string to convert
+ * @return SettingValue containing the converted value
+ *
+ * Conversion rules:
+ * - Quoted strings -> string without quotes
+ * - Numeric values -> int or double
+ * - "true"/"on" -> boolean true
+ * - "false"/"off" -> boolean false
+ * - Other -> string
+ */
 static inline SettingValue makeValue(const std::string &value)
 {
     if(value.starts_with('"') || value.starts_with('\''))

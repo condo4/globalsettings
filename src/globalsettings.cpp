@@ -238,7 +238,7 @@ bool GlobalSettings::set(const std::string &key, SettingValue value, const std::
             last_category = key.first.empty() ? "General" : key.first;
             file << "[" << last_category << "]\n";
         }
-        file << key.second << " = " << std::visit(setting_value_functor(), value) << "\n";
+        file << key.second << " = " << valueToStr(value) << "\n";
     }
 
     m_ptr->m_data[pkey] = value;

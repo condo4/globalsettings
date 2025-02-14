@@ -82,3 +82,69 @@ The system supports these value types through the SettingValue variant:
  - int
  - double
  - bool
+
+# GlobalSettings Python Module Documentation
+## Overview
+
+The GlobalSettings module provides a Python interface for managing global settings across your application. It automatically uses the Python script name as a unique identifier.
+
+## Usage Class: GlobalSettings
+
+```python
+from GlobalSettings import GlobalSettings
+```
+
+## Constructor
+```python
+settings = GlobalSettings.GlobalSettings()
+```
+
+Creates a new GlobalSettings instance using the current Python script name as identifier.
+
+## Methods
+
+### get(key, category="", default=None)
+
+Retrieves a setting value.
+
+    Parameters:
+        key (str): The setting key
+        category (str, optional): Setting category
+        default: Default value if setting not found
+    Returns: The setting value or default if not found
+    Supported value types: str, int, float, bool
+
+```python
+value = settings.get("my_setting", "my_category", "default_value")
+```
+
+### set(key, value, category="")
+
+Sets a setting value.
+
+    Parameters:
+        key (str): The setting key
+        value: The value to set (str, int, float, or bool)
+        category (str, optional): Setting category
+    Returns: True if successful, False otherwise
+
+```python
+settings.set("my_setting", "new_value", "my_category")
+```
+
+## Full example usage
+
+```python
+from GlobalSettings import GlobalSettings
+
+# Create settings instance
+settings = GlobalSettings()
+
+# Set values
+settings.set("port", 8080, "network")
+settings.set("debug", True, "app")
+
+# Get values
+port = settings.get("port", "network", 80)  # returns 8080
+debug = settings.get("debug", "app", False)  # returns True
+```

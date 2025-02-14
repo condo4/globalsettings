@@ -7,6 +7,7 @@
 #include <climits>
 #include <unistd.h>
 #include "changewatcher.h"
+#include "utilssettings.h"
 
 static inline void trim(std::string & str)
 {

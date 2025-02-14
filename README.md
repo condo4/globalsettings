@@ -25,7 +25,18 @@ Settings are stored in configuration files with the `.conf` extension. The file 
 ## Usage
 
 ### Initialization
+```cmake
+find_package(GlobalSettings REQUIRED)
+include_directories(${LIBGLOBALSETTINGS_INCLUDE_DIR})
+
+...
+
+target_link_libraries(myproject PUBLIC ${LIBGLOBALSETTINGS_LIBRARIES})
+```
+
 ```cpp
+#include <globalsettings.h>
+
 GlobalSettings settings;  // Creates instance and loads configuration
 ```
 
@@ -50,8 +61,10 @@ settings.set("key", value, "category");
 settings.set("key", value);
 ```
 
-### Change Notifications and print helper functionà
+### Change Notifications and print helper function
 ```cpp
+#include <globalsettings.h>
+#include <utilssettings.h> // For setting_value_functor()
 // Set a notification handler
 settings.setNotifier([](const std::string& category, const std::string& key, SettingValue value) {
     // Handle setting change

@@ -5,14 +5,11 @@
 #include <memory>
 #include <variant>
 #include <string>
-#include <map>
-#include <algorithm>
 
 using SettingKey = std::pair<std::string, std::string>;
 using SettingValue = std::variant<std::string, int, double, bool>;
 
 class GlobalSettingsPrivate;
-
 class GlobalSettings
 {
 public:

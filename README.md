@@ -68,8 +68,8 @@ The system reads configuration from:
 
 ## Permissions
 
-Settings must be declared writable using @key = owner_id  
-The owner should be the binary filename of the application  
+Settings must be declared writable using @key = owner_id
+The owner should be the binary filename of the application
 Only the declared owner can modify the setting if the program name is the good one
 
 
@@ -82,7 +82,3 @@ The system supports these value types through the SettingValue variant:
  - int
  - double
  - bool
-
-
-## Thread Safety
-The class is currently not thread-safe by default. External synchronization is required when accessing from multiple threads.

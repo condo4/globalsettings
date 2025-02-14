@@ -7,23 +7,19 @@ using namespace std;
 int main(int argc, char *argv[])
 {
     GlobalSettings settings;
-    settings.bypass();
-
-
-
 
     if(argc < 2)
     {
         std::cout << "Current settings:"  << std::endl;
 
-        for (const auto& [key, value] : settings.data()) {
+        settings.forEach([](const SettingKey& key, const SettingValue& value) {
             std::string head;
             if(!key.first.empty())
             {
                 head = "[" + key.first + "]";
             }
             std::cout << "> " << head << key.second << " = " << std::visit(setting_value_functor(), value) << std::endl;
-        }
+        });
     }
     else
     {

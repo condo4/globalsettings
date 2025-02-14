@@ -5,6 +5,7 @@
 #include <vector>
 #include <filesystem>
 #include <climits>
+#include <mutex>
 #include <unistd.h>
 #include "changewatcher.h"
 #include "utilssettings.h"
@@ -27,6 +28,8 @@ class GlobalSettingsPrivate {
     ChangeWatcher m_watcher;
     std::map<SettingKey, std::string> m_owner;
     std::string m_id;
+    std::mutex m_mutex_data;
+    std::mutex m_mutex_notifier;
     bool m_bypass {false};
     std::vector<std::function<void(const std::string&, const std::string&, SettingValue)>> m_notifier;
 
@@ -38,6 +41,11 @@ public:
         std::string binary = std::string(result, (count > 0) ? count : 0);
         std::filesystem::path bin = binary;
         m_id = bin.filename();
+        if(m_id == "settings")
+        {
+            // Only "settings cli tools can bypass the owner protection"
+            m_bypass = true;
+        }
 
         m_watcher.setFileAdded([this](const std::string path){ refreshDirectory(path); });
         m_watcher.setFileRemoved([this](const std::string path){ refreshAll(); });
@@ -124,6 +132,8 @@ public:
 
     void refreshData(const std::map<SettingKey, SettingValue> &cust_data)
     {
+        std::lock_guard<std::mutex> lock(m_mutex_data);
+        std::lock_guard<std::mutex> lock_notifier(m_mutex_notifier);
         for(const auto& [key, value] : cust_data) {
             if(!m_data.contains(key) || m_data[key] != value)
             {
@@ -168,13 +178,9 @@ GlobalSettings::GlobalSettings()
     m_ptr->parseConf("/var/system.conf", m_ptr->m_data, true);
 }
 
-const std::map<SettingKey, SettingValue> &GlobalSettings::data()
+SettingValue GlobalSettings::get(const std::string &key, const std::string &category, SettingValue def) const
 {
-    return m_ptr->m_data;
-}
-
-SettingValue GlobalSettings::get(const std::string &key, const std::string &category, SettingValue def)
-{
+    std::lock_guard<std::mutex> lock(m_ptr->m_mutex_data);
     std::string gkey = key;
     std::string gcategory = category;
     if(gcategory.empty() && gkey.starts_with("["))
@@ -195,6 +201,7 @@ SettingValue GlobalSettings::get(const std::string &key, const std::string &cate
 bool GlobalSettings::set(const std::string &key, SettingValue value, const std::string &category)
 {
     // Check if variable is writable
+    std::lock_guard<std::mutex> lock(m_ptr->m_mutex_data);
     SettingKey pkey(category, key);
     std::string id;
 
@@ -238,7 +245,7 @@ bool GlobalSettings::set(const std::string &key, SettingValue value, const std::
     return true;
 }
 
-std::string GlobalSettings::id()
+std::string GlobalSettings::id() const
 {
     return m_ptr->m_id;
 }
@@ -248,18 +255,25 @@ void GlobalSettings::setId(const std::string &newid)
     m_ptr->m_id = newid;
 }
 
-void GlobalSettings::bypass()
-{
-    if(m_ptr->m_id == "settings")
-    {
-        m_ptr->m_bypass = true;
-    }
-}
-
 void GlobalSettings::setNotifier(const std::function<void (const std::string &, const std::string &, SettingValue)> &callback)
 {
+    std::lock_guard<std::mutex> lock(m_ptr->m_mutex_notifier);
     m_ptr->m_notifier.push_back(callback);
     m_ptr->m_watcher.setEnable(true);
+}
+
+std::size_t GlobalSettings::size() const
+{
+    std::lock_guard<std::mutex> lock(m_ptr->m_mutex_data);
+    return m_ptr->m_data.size();
+}
+
+void GlobalSettings::forEach(const std::function<void (const SettingKey &, const SettingValue &)> &callback) const
+{
+    std::lock_guard<std::mutex> lock(m_ptr->m_mutex_data);
+    for (const auto& [key, value] : m_ptr->m_data) {
+        callback(key, value);
+    }
 }
 
 GlobalSettings::~GlobalSettings()

@@ -19,15 +19,16 @@ public:
     explicit GlobalSettings();
     virtual ~GlobalSettings();
 
-    const std::map<SettingKey, SettingValue>& data();
-    SettingValue get(const std::string &key, const std::string &category = "", SettingValue def = SettingValue());
+    SettingValue get(const std::string &key, const std::string &category = "", SettingValue def = SettingValue()) const;
     bool set(const std::string &key, SettingValue value, const std::string &category = "");
 
-    std::string id();
+    std::string id() const;
     void setId(const std::string &newid);
 
-    void bypass(); // Internal usage; except settings command line tool, you shouldn't use it
     void setNotifier(const std::function<void(const std::string&, const std::string&, SettingValue)>& callback);
+
+    std::size_t size() const;
+    void forEach(const std::function<void(const SettingKey&, const SettingValue&)>& callback) const;
 
 private:
     std::unique_ptr<GlobalSettingsPrivate> m_ptr;

@@ -1,6 +1,7 @@
 #include "changewatcher.h"
 #include <iostream>
 #include <filesystem>
+#include <algorithm>
 #include <sys/inotify.h>
 #include <sys/eventfd.h>
 #include <unistd.h>

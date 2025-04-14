@@ -7,6 +7,7 @@
 #include <climits>
 #include <mutex>
 #include <unistd.h>
+#include <algorithm>
 #include "changewatcher.h"
 #include "utilssettings.h"
 

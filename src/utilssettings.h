@@ -26,6 +26,27 @@ static inline std::string valueToStr(const SettingValue &value)
 }
 
 /**
+ * @brief Functor to convert SettingValue variants to string
+ *
+ * Provides string conversion for all supported setting value types
+ */
+struct settingValueFunctorInt {
+    int operator()(const std::string &x) const { return std::stoi(x); }
+    int operator()(int x) const { return x; }
+    int operator()(double x) const { return x; }
+    int operator()(bool x) const { return x ? 1 : 0; }
+};
+
+/**
+ * @brief Convert a SettingValue into a string for display
+ * @param value Input SettingValue to convert
+ * @return std::string containing the converted value
+ */
+static inline int valueToInt(const SettingValue &value)
+{
+    return std::visit(settingValueFunctorInt(), value);
+}
+/**
  * @brief Check if a string represents a valid numeric value
  * @param str String to check
  * @return true if string is numeric, false otherwise

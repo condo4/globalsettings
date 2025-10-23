@@ -175,8 +175,7 @@ public:
 GlobalSettings::GlobalSettings()
     : m_ptr(std::make_unique<GlobalSettingsPrivate>(this))
 {
-    m_ptr->parseConf("/etc/system.conf", m_ptr->m_data, false);
-    m_ptr->parseConf("/var/system.conf", m_ptr->m_data, true);
+    m_ptr->refreshAll();
 }
 
 SettingValue GlobalSettings::get(const std::string &key, const std::string &category, SettingValue def) const

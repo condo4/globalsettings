@@ -14,6 +14,10 @@ add_library(globalsettings SHARED
   src/changewatcher.h src/changewatcher.cpp
   src/utilssettings.h
 )
+
+if(DYNAMIC_OVERRIDE)
+    target_compile_definitions(globalsettings PUBLIC -DDYNAMIC_OVERRIDE=${DYNAMIC_OVERRIDE})
+endif(DYNAMIC_OVERRIDE)
 set_target_properties(globalsettings PROPERTIES VERSION ${CMAKE_PROJECT_VERSION} SOVERSION 1)
 set_target_properties(globalsettings PROPERTIES PUBLIC_HEADER "src/globalsettings.h;src/utilssettings.h")
 target_link_libraries(globalsettings PRIVATE Threads::Threads)

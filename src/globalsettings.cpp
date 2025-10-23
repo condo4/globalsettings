@@ -11,6 +11,9 @@
 #include "changewatcher.h"
 #include "utilssettings.h"
 
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
+
 static inline void trim(std::string & str)
 {
     str.erase(str.begin(), std::find_if(str.begin(), str.end(), [](const unsigned char ch){return !std::isspace(ch);}));
@@ -163,10 +166,40 @@ public:
         refreshData(cust_data);
     }
 
+#ifdef DYNAMIC_OVERRIDE
+    std::string getOverridePath() {
+        std::ifstream file(TOSTRING(DYNAMIC_OVERRIDE));
+
+        if (!file.is_open()) {
+            return "";
+        }
+
+        std::string content;
+        std::string line;
+
+        while (std::getline(file, line)) {
+            content += line;
+        }
+
+        file.close();
+
+        content.erase(
+            std::remove_if(content.begin(), content.end(),
+                [](unsigned char c) { return !std::isalnum(c); }),
+            content.end()
+        );
+
+        return "/etc/system_" + content + ".conf";
+    }
+#endif
+
     void refreshAll()
     {
         std::map<SettingKey, SettingValue> cust_data;
         parseConf("/etc/system.conf", cust_data, false);
+#ifdef DYNAMIC_OVERRIDE
+        parseConf(getOverridePath(), cust_data, false);
+#endif
         parseConf("/var/system.conf", cust_data, true);
         refreshData(cust_data);
     }

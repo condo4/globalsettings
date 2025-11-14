@@ -23,8 +23,21 @@ class GlobalSettingsPrivate;
 class GlobalSettings
 {
 public:
-    /** @brief Constructs a new GlobalSettings instance */
+    /** @brief Constructs a new GlobalSettings instance with default base name "system" */
     explicit GlobalSettings();
+
+    /**
+     * @brief Constructs a new GlobalSettings instance with custom base name
+     * @param base The base name for configuration files (e.g., "fiber_application")
+     *
+     * The base name determines the configuration file paths:
+     * - /etc/{base}.conf
+     * - /etc/{base}.conf.d/*
+     * - /var/{base}.conf.d/<appid>.conf
+     *
+     * Default base is "system" if using the parameterless constructor.
+     */
+    explicit GlobalSettings(const std::string &base);
 
     /** @brief Virtual destructor */
     virtual ~GlobalSettings();

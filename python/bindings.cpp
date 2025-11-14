@@ -10,6 +10,7 @@ class PyGlobalSettings {
 
 public:
     PyGlobalSettings();
+    PyGlobalSettings(std::string base);
     std::string __repr__();
     static void add_python_binding(pybind11::module &m);
     SettingValue get(std::string key, std::string category, SettingValue def);
@@ -17,6 +18,12 @@ public:
 };
 
 PyGlobalSettings::PyGlobalSettings() {
+    py::module sys = py::module::import("sys");
+    py::list argv = sys.attr("argv");
+    m_settings.setId(argv[0].cast<std::string>());
+}
+
+PyGlobalSettings::PyGlobalSettings(std::string base) : m_settings(base) {
     py::module sys = py::module::import("sys");
     py::list argv = sys.attr("argv");
     m_settings.setId(argv[0].cast<std::string>());
@@ -39,6 +46,7 @@ void PyGlobalSettings::add_python_binding(pybind11::module &m)
 {
     py::class_<PyGlobalSettings>(m, "GlobalSettings")
         .def(py::init<>())
+        .def(py::init<std::string>(), py::arg("base"))
 
         .def("get", [] (PyGlobalSettings &m, std::string key, std::string category = "", SettingValue def = SettingValue()) {
             return m.get(key, category, def);

@@ -32,14 +32,15 @@ class GlobalSettingsPrivate {
     ChangeWatcher m_watcher;
     std::map<SettingKey, std::string> m_owner;
     std::string m_id;
+    std::string m_base;
     std::mutex m_mutex_data;
     std::mutex m_mutex_notifier;
     bool m_bypass {false};
     std::vector<std::function<void(const std::string&, const std::string&, SettingValue)>> m_notifier;
 
 public:
-    GlobalSettingsPrivate(GlobalSettings *parent)
-        : m_parent(parent) {
+    GlobalSettingsPrivate(GlobalSettings *parent, const std::string &base)
+        : m_parent(parent), m_base(base) {
         char result[PATH_MAX];
         ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
         std::string binary = std::string(result, (count > 0) ? count : 0);
@@ -196,17 +197,22 @@ public:
     void refreshAll()
     {
         std::map<SettingKey, SettingValue> cust_data;
-        parseConf("/etc/system.conf", cust_data, false);
+        parseConf("/etc/" + m_base + ".conf", cust_data, false);
 #ifdef DYNAMIC_OVERRIDE
         parseConf(getOverridePath(), cust_data, false);
 #endif
-        parseConf("/var/system.conf", cust_data, true);
+        parseConf("/var/" + m_base + ".conf", cust_data, true);
         refreshData(cust_data);
     }
 };
 
 GlobalSettings::GlobalSettings()
-    : m_ptr(std::make_unique<GlobalSettingsPrivate>(this))
+    : GlobalSettings("system")
+{
+}
+
+GlobalSettings::GlobalSettings(const std::string &base)
+    : m_ptr(std::make_unique<GlobalSettingsPrivate>(this, base))
 {
     m_ptr->refreshAll();
 }
@@ -260,10 +266,10 @@ bool GlobalSettings::set(const std::string &key, SettingValue value, const std::
 
     // Permission is OK, get old custom variable
     std::map<SettingKey, SettingValue> cust_data;
-    m_ptr->parseFile("/var/system.conf.d/"+id+".conf", cust_data);
+    m_ptr->parseFile("/var/" + m_ptr->m_base + ".conf.d/"+id+".conf", cust_data);
     cust_data[pkey] = value;
     std::string last_category = "";
-    std::ofstream file("/var/system.conf.d/"+id+".conf");
+    std::ofstream file("/var/" + m_ptr->m_base + ".conf.d/"+id+".conf");
 
     for(const auto& [key, value] : cust_data) {
         if(key.first != last_category)

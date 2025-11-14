@@ -17,6 +17,7 @@ ChangeWatcher::~ChangeWatcher()
 
 void ChangeWatcher::watch(const std::string &newPath)
 {
+    std::lock_guard<std::mutex> lock(m_mutex_state);
     if(std::find(m_watches.begin(), m_watches.end(), newPath) == m_watches.end())
     {
         m_watches.push_back(newPath);
@@ -41,8 +42,17 @@ void ChangeWatcher::setEnable(bool newVal)
             return;
         }
 
-        for(auto &newPath: m_watches)
+        // Copy watches vector while holding lock to avoid race condition
+        std::vector<std::string> watches_copy;
         {
+            std::lock_guard<std::mutex> lock(m_mutex_state);
+            watches_copy = m_watches;
+        }
+
+        // Now iterate the copy without holding the lock
+        for(auto &newPath: watches_copy)
+        {
+            std::lock_guard<std::mutex> lock(m_mutex_state);
             _addWatch(newPath);
         }
 
@@ -76,16 +86,19 @@ bool ChangeWatcher::enabled() const
 
 void ChangeWatcher::setFileWrited(const std::function<void (const std::string &)> &callback)
 {
+    std::lock_guard<std::mutex> lock(m_mutex_state);
     m_filewrited = callback;
 }
 
 void ChangeWatcher::setFileAdded(const std::function<void (const std::string &)> &callback)
 {
+    std::lock_guard<std::mutex> lock(m_mutex_state);
     m_fileadded = callback;
 }
 
 void ChangeWatcher::setFileRemoved(const std::function<void (const std::string &)> &callback)
 {
+    std::lock_guard<std::mutex> lock(m_mutex_state);
     m_fileremoved = callback;
 }
 
@@ -112,18 +125,37 @@ void ChangeWatcher::_runningLoop(ChangeWatcher *m)
                     size_t i = 0;
                     while (i < length) {
                         auto* event = reinterpret_cast<struct inotify_event*>(&buffer[i]);
-                        if((event->mask & IN_CLOSE_WRITE) && (m->m_filewrited != nullptr))
+
+                        // Copy callback and path while holding lock, then call without lock
+                        std::string path;
+                        std::function<void(const std::string&)> callback;
+
                         {
-                            m->m_filewrited(m->m_wd[event->wd]);
+                            std::lock_guard<std::mutex> lock(m->m_mutex_state);
+                            auto it = m->m_wd.find(event->wd);
+                            if (it != m->m_wd.end()) {
+                                path = it->second;
+
+                                if((event->mask & IN_CLOSE_WRITE) && (m->m_filewrited != nullptr))
+                                {
+                                    callback = m->m_filewrited;
+                                }
+                                else if((event->mask & IN_CREATE) && (m->m_fileadded != nullptr))
+                                {
+                                    callback = m->m_fileadded;
+                                }
+                                else if((event->mask & IN_DELETE) && (m->m_fileremoved != nullptr))
+                                {
+                                    callback = m->m_fileremoved;
+                                }
+                            }
                         }
-                        if((event->mask & IN_CREATE) && (m->m_fileadded != nullptr))
-                        {
-                            m->m_fileadded(m->m_wd[event->wd]);
+
+                        // Call callback without holding lock to prevent deadlock
+                        if (callback && !path.empty()) {
+                            callback(path);
                         }
-                        if((event->mask & IN_DELETE) && (m->m_fileremoved != nullptr))
-                        {
-                            m->m_fileremoved(m->m_wd[event->wd]);
-                        }
+
                         i += event_size + event->len;
                     }
                 }

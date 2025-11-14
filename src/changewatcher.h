@@ -5,6 +5,8 @@
 #include <string>
 #include <map>
 #include <thread>
+#include <mutex>
+#include <vector>
 
 class ChangeWatcher
 {
@@ -12,6 +14,10 @@ class ChangeWatcher
     int m_fdevent;
     bool m_enabled {false};
     std::thread m_thread;
+
+    // Mutex to protect shared data accessed by multiple threads
+    mutable std::mutex m_mutex_state;
+
     std::vector<std::string> m_watches;
     std::map<int, std::string> m_wd;
 

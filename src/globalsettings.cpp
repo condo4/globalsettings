@@ -43,13 +43,18 @@ public:
         : m_parent(parent), m_base(base) {
         char result[PATH_MAX];
         ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
-        std::string binary = std::string(result, (count > 0) ? count : 0);
-        std::filesystem::path bin = binary;
-        m_id = bin.filename();
-        if(m_id == "settings")
-        {
-            // Only "settings cli tools can bypass the owner protection"
-            m_bypass = true;
+        if (count <= 0 || count >= PATH_MAX) {
+            std::cerr << "WARNING: Cannot determine application path, using 'unknown' as ID" << std::endl;
+            m_id = "unknown";
+        } else {
+            std::string binary = std::string(result, count);
+            std::filesystem::path bin = binary;
+            m_id = bin.filename();
+            if(m_id == "settings")
+            {
+                // Only "settings cli tools can bypass the owner protection"
+                m_bypass = true;
+            }
         }
 
         m_watcher.setFileAdded([this](const std::string path){ refreshDirectory(path); });
@@ -88,6 +93,10 @@ public:
                 continue;
             }
             size_t pos = line.find("=");
+            if (pos == std::string::npos) {
+                std::cerr << "WARNING: Malformed config line (missing '='): " << line << std::endl;
+                continue;
+            }
             std::string key = line.substr(0, pos);
             trim(key);
             std::string value = line.substr(pos + 1);
@@ -224,8 +233,13 @@ SettingValue GlobalSettings::get(const std::string &key, const std::string &cate
     std::string gcategory = category;
     if(gcategory.empty() && gkey.starts_with("["))
     {
-        gcategory = gkey.substr(1, gkey.find(']') - 1);
-        gkey = gkey.substr(gkey.find(']') + 1);
+        size_t closing_bracket = gkey.find(']');
+        if (closing_bracket == std::string::npos) {
+            std::cerr << "ERROR: Malformed key (missing ']'): " << gkey << std::endl;
+            return def;
+        }
+        gcategory = gkey.substr(1, closing_bracket - 1);
+        gkey = gkey.substr(closing_bracket + 1);
     }
 
     SettingKey pkey(gcategory, gkey);
@@ -268,9 +282,16 @@ bool GlobalSettings::set(const std::string &key, SettingValue value, const std::
     std::map<SettingKey, SettingValue> cust_data;
     m_ptr->parseFile("/var/" + m_ptr->m_base + ".conf.d/"+id+".conf", cust_data);
     cust_data[pkey] = value;
-    std::string last_category = "";
-    std::ofstream file("/var/" + m_ptr->m_base + ".conf.d/"+id+".conf");
 
+    std::string config_path = "/var/" + m_ptr->m_base + ".conf.d/" + id + ".conf";
+    std::ofstream file(config_path);
+
+    if (!file.is_open()) {
+        std::cerr << "ERROR: Cannot open config file for writing: " << config_path << std::endl;
+        return false;
+    }
+
+    std::string last_category = "";
     for(const auto& [key, value] : cust_data) {
         if(key.first != last_category)
         {
@@ -280,6 +301,12 @@ bool GlobalSettings::set(const std::string &key, SettingValue value, const std::
         file << key.second << " = " << valueToStr(value) << "\n";
     }
 
+    if (!file) {
+        std::cerr << "ERROR: Write failed for config file: " << config_path << std::endl;
+        return false;
+    }
+
+    file.close();
     m_ptr->m_data[pkey] = value;
     return true;
 }

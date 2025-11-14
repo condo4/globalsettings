@@ -26,12 +26,19 @@ static inline std::string valueToStr(const SettingValue &value)
 }
 
 /**
- * @brief Functor to convert SettingValue variants to string
+ * @brief Functor to convert SettingValue variants to int
  *
- * Provides string conversion for all supported setting value types
+ * Provides int conversion for all supported setting value types
  */
 struct settingValueFunctorInt {
-    int operator()(const std::string &x) const { return std::stoi(x); }
+    int operator()(const std::string &x) const {
+        try {
+            return std::stoi(x);
+        } catch (const std::exception& e) {
+            std::cerr << "WARNING: Cannot convert to int: " << x << std::endl;
+            return 0;
+        }
+    }
     int operator()(int x) const { return x; }
     int operator()(double x) const { return x; }
     int operator()(bool x) const { return x ? 1 : 0; }
@@ -75,19 +82,33 @@ static inline SettingValue makeValue(const std::string &value)
 {
     if(value.starts_with('"') || value.starts_with('\''))
     {
+        if (value.length() < 2) {
+            std::cerr << "WARNING: Invalid quoted value: " << value << std::endl;
+            return SettingValue(std::string(""));
+        }
+        char quote = value[0];
+        if (value.back() != quote) {
+            std::cerr << "WARNING: Mismatched quotes in value: " << value << std::endl;
+            return SettingValue(std::string(""));
+        }
         return value.substr(1, value.length() - 2);
     }
 
     if(is_numeric(value))
     {
-        // double
-        if(value.find('.') != value.npos)
-        {
-            return std::stod(value);
-        }
-        else
-        {
-            return std::stoi(value);
+        try {
+            // double
+            if(value.find('.') != value.npos)
+            {
+                return std::stod(value);
+            }
+            else
+            {
+                return std::stoi(value);
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "WARNING: Numeric parsing failed for '" << value << "', treating as string" << std::endl;
+            return SettingValue(value);
         }
     }
 

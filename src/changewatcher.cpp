@@ -36,11 +36,24 @@ void ChangeWatcher::setEnable(bool newVal)
     {
         // Start thread
         m_fdnotify = inotify_init();
+        if (m_fdnotify == -1) {
+            std::cerr << "ERROR: inotify_init() failed" << std::endl;
+            return;
+        }
+
         for(auto &newPath: m_watches)
         {
             _addWatch(newPath);
         }
+
         m_fdevent = eventfd(0, 0);
+        if (m_fdevent == -1) {
+            std::cerr << "ERROR: eventfd() failed" << std::endl;
+            close(m_fdnotify);
+            m_fdnotify = -1;
+            return;
+        }
+
         m_enabled = true;
         m_thread =  std::thread(_runningLoop, this);
     }
@@ -130,5 +143,10 @@ void ChangeWatcher::_addWatch(const std::string &newPath)
     {
         wd = inotify_add_watch(m_fdnotify, newPath.c_str(), IN_CLOSE_WRITE);
     }
-    if(wd > -1)  m_wd[wd] = newPath;
+
+    if(wd == -1) {
+        std::cerr << "WARNING: Cannot watch path: " << newPath << std::endl;
+    } else {
+        m_wd[wd] = newPath;
+    }
 }

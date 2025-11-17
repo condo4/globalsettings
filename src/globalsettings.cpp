@@ -27,6 +27,42 @@ static inline bool list_contains(std::vector<std::string> list, const std::strin
     return (std::find(list.begin(), list.end(), str) != list.end());
 }
 
+/**
+ * @brief Validates that an ID is safe for use in file paths
+ * @param id The ID string to validate
+ * @return true if ID is safe (alphanumeric, dash, underscore only), false otherwise
+ *
+ * Prevents path traversal attacks by rejecting IDs containing:
+ * - ".." (parent directory)
+ * - "/" or "\" (path separators)
+ * - Any non-alphanumeric characters except dash and underscore
+ */
+static inline bool isValidId(const std::string& id)
+{
+    if (id.empty()) {
+        return false;
+    }
+
+    // Reject path traversal attempts
+    if (id.find("..") != std::string::npos) {
+        return false;
+    }
+
+    // Reject path separators
+    if (id.find('/') != std::string::npos || id.find('\\') != std::string::npos) {
+        return false;
+    }
+
+    // Only allow alphanumeric, dash, and underscore
+    for (char c : id) {
+        if (!std::isalnum(static_cast<unsigned char>(c)) && c != '_' && c != '-') {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 class GlobalSettingsPrivate {
     friend class GlobalSettings;
     GlobalSettings *m_parent;
@@ -52,6 +88,14 @@ public:
             std::string binary = std::string(result, count);
             std::filesystem::path bin = binary;
             m_id = bin.filename();
+
+            // Validate ID to prevent path traversal (defense in depth)
+            if (!isValidId(m_id)) {
+                std::cerr << "WARNING: Binary name contains unsafe characters: \"" << m_id << "\"" << std::endl;
+                std::cerr << "         Using 'unknown' as ID instead" << std::endl;
+                m_id = "unknown";
+            }
+
             if(m_id == "settings")
             {
                 // Only "settings cli tools can bypass the owner protection"
@@ -280,6 +324,13 @@ bool GlobalSettings::set(const std::string &key, SettingValue value, const std::
         }
     }
 
+    // Validate ID to prevent path traversal attacks
+    if (!isValidId(id)) {
+        std::cerr << "ERROR: Invalid ID (potential path traversal): \"" << id << "\"" << std::endl;
+        std::cerr << "       IDs must contain only alphanumeric characters, dash, and underscore" << std::endl;
+        return false;
+    }
+
     // Permission is OK, get old custom variable
     std::map<SettingKey, SettingValue> cust_data;
     m_ptr->parseFile("/var/" + m_ptr->m_base + ".conf.d/"+id+".conf", cust_data);
@@ -354,6 +405,15 @@ std::string GlobalSettings::id() const
 void GlobalSettings::setId(const std::string &newid)
 {
     std::lock_guard<std::mutex> lock(m_ptr->m_mutex_data);
+
+    // Validate ID to prevent path traversal attacks
+    if (!isValidId(newid)) {
+        std::cerr << "ERROR: Invalid ID (potential path traversal): \"" << newid << "\"" << std::endl;
+        std::cerr << "       IDs must contain only alphanumeric characters, dash, and underscore" << std::endl;
+        std::cerr << "       Keeping current ID: \"" << m_ptr->m_id << "\"" << std::endl;
+        return;
+    }
+
     m_ptr->m_id = newid;
 }
 

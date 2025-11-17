@@ -8,6 +8,8 @@
 #include <mutex>
 #include <unistd.h>
 #include <algorithm>
+#include <cstring>
+#include <cerrno>
 #include "changewatcher.h"
 #include "utilssettings.h"
 
@@ -283,30 +285,62 @@ bool GlobalSettings::set(const std::string &key, SettingValue value, const std::
     m_ptr->parseFile("/var/" + m_ptr->m_base + ".conf.d/"+id+".conf", cust_data);
     cust_data[pkey] = value;
 
+    // Use atomic write pattern: write to temp file, then rename
     std::string config_path = "/var/" + m_ptr->m_base + ".conf.d/" + id + ".conf";
-    std::ofstream file(config_path);
+    std::string temp_path = config_path + ".tmp." + std::to_string(getpid());
 
+    // Write to temporary file
+    std::ofstream file(temp_path);
     if (!file.is_open()) {
-        std::cerr << "ERROR: Cannot open config file for writing: " << config_path << std::endl;
+        std::cerr << "ERROR: Cannot open temp file for writing: " << temp_path << std::endl;
         return false;
     }
 
+    // Write all data with per-line error checking
     std::string last_category = "";
     for(const auto& [key, value] : cust_data) {
         if(key.first != last_category)
         {
             last_category = key.first.empty() ? "General" : key.first;
-            file << "[" << last_category << "]\n";
+            if (!(file << "[" << last_category << "]\n")) {
+                std::cerr << "ERROR: Write failed at category: " << last_category << std::endl;
+                file.close();
+                std::remove(temp_path.c_str());  // Clean up temp file
+                return false;
+            }
         }
-        file << key.second << " = " << valueToStr(value) << "\n";
+        if (!(file << key.second << " = " << valueToStr(value) << "\n")) {
+            std::cerr << "ERROR: Write failed at key: " << key.second << std::endl;
+            file.close();
+            std::remove(temp_path.c_str());  // Clean up temp file
+            return false;
+        }
     }
 
-    if (!file) {
-        std::cerr << "ERROR: Write failed for config file: " << config_path << std::endl;
+    // Flush and verify before closing
+    file.flush();
+    if (!file.good()) {
+        std::cerr << "ERROR: Flush failed for temp file: " << temp_path << std::endl;
+        file.close();
+        std::remove(temp_path.c_str());
         return false;
     }
 
     file.close();
+    if (!file) {
+        std::cerr << "ERROR: Close failed for temp file: " << temp_path << std::endl;
+        std::remove(temp_path.c_str());
+        return false;
+    }
+
+    // Atomic rename - this is the critical operation
+    if (std::rename(temp_path.c_str(), config_path.c_str()) != 0) {
+        std::cerr << "ERROR: Failed to rename temp file to config file: " << strerror(errno) << std::endl;
+        std::remove(temp_path.c_str());
+        return false;
+    }
+
+    // Only NOW update memory (after successful atomic write)
     m_ptr->m_data[pkey] = value;
     return true;
 }

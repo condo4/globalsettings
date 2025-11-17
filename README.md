@@ -1,21 +1,120 @@
-[<img src="https://img.shields.io/badge/yocto-globalsettings-blue.svg?logo=loom">](https://cosgit1.ds.jdsu.net/projects/PLAT_YOCTO/repos/meta-viavi/browse/recipes-core/globalsettings)
+# GlobalSettings
 
-# GlobalSettings Class Documentation
+[![Yocto](https://img.shields.io/badge/yocto-globalsettings-blue.svg?logo=loom)](https://cosgit1.ds.jdsu.net/projects/PLAT_YOCTO/repos/meta-viavi/browse/recipes-core/globalsettings)
 
 ## Overview
-The `GlobalSettings` class provides a robust system-wide configuration management solution. It allows reading and writing settings from configuration files with category support, type safety, and change notifications.
+
+The `GlobalSettings` library provides a robust, thread-safe system-wide configuration management solution for C++ applications with Python bindings. It enables reading and writing settings from hierarchical configuration files with category support, type safety, automatic file watching, and change notifications.
 
 ## Features
-- Read settings from multiple configuration files
-- Support for different value types (string, int, double, boolean)
-- Category-based organization of settings
-- File change monitoring with inotify
-- Permission-based write access
-- Change notification system
-- Thread-safe operations
-- Python bindings available
+
+- **Thread-Safe Operations** - All methods are thread-safe for concurrent access
+- **Multiple Value Types** - Support for string, int, double, and boolean values
+- **Category Organization** - Logical grouping of related settings
+- **Automatic File Watching** - Detect and reload configuration changes via inotify
+- **Change Notifications** - Get callbacks when settings are modified
+- **Ownership Control** - Permission-based write access with ownership declarations
+- **Hierarchical Configuration** - Load from multiple sources with precedence
+- **Custom Base Names** - Support multiple independent configuration systems
+- **Python Bindings** - Full Python API via pybind11
+- **CLI Tool** - Command-line utility for viewing and modifying settings
+
+## Documentation
+
+**📚 [Complete Documentation](docs/README.md)** - Start here for comprehensive guides
+
+### Quick Links
+
+| Documentation | Description |
+|---------------|-------------|
+| **[Getting Started](docs/getting-started.md)** | Installation, quick start, first programs |
+| **[API Reference](docs/api-reference.md)** | Complete C++ API documentation |
+| **[Configuration Format](docs/configuration.md)** | Configuration file syntax and best practices |
+| **[Python Bindings](docs/python-bindings.md)** | Python API and examples |
+| **[Examples](docs/examples.md)** | Practical code examples for common use cases |
+| **[Troubleshooting](docs/troubleshooting.md)** | Solutions to common problems |
+
+### Advanced Topics
+
+| Documentation | Description |
+|---------------|-------------|
+| **[Architecture](docs/architecture.md)** | Internal design and implementation details |
+| **[Thread Safety](docs/threading.md)** | Thread safety guarantees and patterns |
+| **[Security](docs/security.md)** | Security considerations and best practices |
+| **[Testing](docs/testing.md)** | Testing guide and framework |
+| **[Contributing](docs/contributing.md)** | Contribution guidelines and workflow |
+
+## Quick Start
+
+### Installation
+
+```bash
+# Clone and build
+git clone <repository-url>
+cd globalsettings
+mkdir build && cd build
+cmake .. -DWITH_PYTHON=ON
+make
+sudo make install
+```
+
+### C++ Example
+
+```cpp
+#include <globalsettings.h>
+#include <iostream>
+
+int main() {
+    GlobalSettings settings;
+
+    // Read with defaults
+    auto port = std::get<int>(
+        settings.get("port", "network", SettingValue(8080))
+    );
+
+    std::cout << "Port: " << port << std::endl;
+
+    // Write settings (requires ownership)
+    settings.set("debug", SettingValue(true), "app");
+
+    return 0;
+}
+```
+
+### Python Example
+
+```python
+from GlobalSettings import GlobalSettings
+
+settings = GlobalSettings()
+
+# Read with defaults
+port = settings.get("port", "network", 8080)
+print(f"Port: {port}")
+
+# Write settings
+settings.set("debug", True, "app")
+```
+
+### Configuration File
+
+```conf
+# /etc/system.conf.d/myapp.conf
+
+[network]
+port = 8080
+host = 0.0.0.0
+
+[app]
+debug = false
+
+# Declare ownership for writable settings
+@port = myapp
+@debug = myapp
+```
 
 ## Configuration File Structure
+
 Settings are stored in configuration files with the `.conf` extension. The file format supports:
 - Categories in square brackets: `[CategoryName]`
 - Key-value pairs: `key = value`
@@ -23,33 +122,26 @@ Settings are stored in configuration files with the `.conf` extension. The file 
 - Comments: Lines starting with `#` are ignored
 - Empty lines are ignored
 
-### Value Types SettingValue
+### Value Types
+
 - Strings: `key = "value"` or `key = 'value'` or `key = value`
 - Numbers: `key = 42` or `key = 3.14`
 - Booleans: `key = true/false` or `key = on/off`
 
-### Example Configuration File
+### Configuration Hierarchy
 
-```conf
-# Example /etc/system.conf.d/myapp.conf
-
-# General settings (no category)
-hostname = server1
-debug = false
-
-# Network settings
-[network]
-port = 8080
-host = 0.0.0.0
-timeout = 30.0
-
-# Ownership declarations (allow myapp to modify these settings)
-@port = myapp
-@debug = myapp
-
-# Legacy ownership format also supported
-host/owner = myapp
 ```
+/etc/system.conf                    # System defaults (read-only)
+/etc/system.conf.d/                 # Configuration fragments (read-only)
+  ├── 00-defaults.conf
+  ├── 10-network.conf
+  └── 20-myapp.conf
+/var/system.conf.d/                 # Application settings (read-write)
+  ├── myapp.conf
+  └── otherapp.conf
+```
+
+Settings are loaded in order with later files overriding earlier ones.
 
 ## Building
 
@@ -300,135 +392,53 @@ The GlobalSettings class is thread-safe for concurrent operations:
 
 Multiple threads can safely read and write settings concurrently. The internal implementation uses mutexes to protect shared data structures.
 
-# GlobalSettings Python Module Documentation
-## Overview
+## Python Bindings
 
-The GlobalSettings module provides a Python interface for managing global settings across your application. It automatically uses the Python script name (from `sys.argv[0]`) as a unique identifier.
+GlobalSettings provides full Python bindings via pybind11. The Python API mirrors the C++ API with automatic type handling.
 
-## Usage
-
-```python
-from GlobalSettings import GlobalSettings
-```
-
-## Constructor
-
-### Default Constructor
-```python
-settings = GlobalSettings()
-```
-
-Creates a new GlobalSettings instance using:
-- Base name: `"system"` (default)
-- Identifier: Current Python script name from `sys.argv[0]`
-
-### Custom Base Constructor
-```python
-settings = GlobalSettings("fiber_application")
-```
-
-Creates a GlobalSettings instance with a custom base name:
-- Base name: `"fiber_application"`
-- Identifier: Current Python script name from `sys.argv[0]`
-- Configuration paths: `/etc/fiber_application.conf`, `/var/fiber_application.conf.d/`, etc.
-
-## Methods
-
-### get(key, category="", default=None)
-
-Retrieves a setting value.
-
-**Parameters:**
-- `key` (str): The setting key
-- `category` (str, optional): Setting category (default: "")
-- `default`: Default value if setting not found (default: None)
-
-**Returns:** The setting value or default if not found
-
-**Supported value types:** str, int, float, bool
-
-```python
-# Get with category and default
-value = settings.get("my_setting", "my_category", "default_value")
-
-# Get without category
-value = settings.get("my_setting", default="default")
-
-# Get with category notation
-value = settings.get("[network]port", default=80)
-```
-
-### set(key, value, category="")
-
-Sets a setting value. Requires proper ownership declaration in configuration files.
-
-**Parameters:**
-- `key` (str): The setting key
-- `value`: The value to set (str, int, float, or bool)
-- `category` (str, optional): Setting category (default: "")
-
-**Returns:** The set value (note: does not return boolean success indicator)
-
-```python
-# Set with category
-settings.set("my_setting", "new_value", "my_category")
-
-# Set without category
-settings.set("debug", True)
-
-# Set with category notation
-settings.set("[network]port", 8080)
-```
-
-## Full Example Usage
+**Quick Example:**
 
 ```python
 from GlobalSettings import GlobalSettings
 
-# Example 1: Create settings instance with default "system" base
+# Create instance
 settings = GlobalSettings()
 
-# Example 2: Create settings instance with custom base
-custom_settings = GlobalSettings("fiber_application")
-# This uses /etc/fiber_application.conf and /var/fiber_application.conf.d/
-
-# Set values
-settings.set("port", 8080, "network")
+# Read and write settings
+port = settings.get("port", "network", 8080)
 settings.set("debug", True, "app")
 
-# Get values with defaults
-port = settings.get("port", "network", 80)      # returns 8080
-debug = settings.get("debug", "app", False)     # returns True
-host = settings.get("host", "network", "localhost")  # returns "localhost" if not set
-
-# Using category notation
-settings.set("[database]host", "localhost")
-db_host = settings.get("[database]host", default="127.0.0.1")
+# Custom base name
+app_settings = GlobalSettings("myapp")
 ```
 
-## Notes
+**📖 See [Python Bindings Documentation](docs/python-bindings.md)** for complete API reference, examples, and advanced usage.
 
-- The Python script must have proper ownership declarations in configuration files to modify settings
-- Settings are persisted to `/var/system.conf.d/<script_name>.conf`
-- All settings are read from system configuration files on initialization
+## Common Issues
 
-## Troubleshooting
+**Need help?** Check the **[Troubleshooting Guide](docs/troubleshooting.md)** for solutions to:
+- Installation problems
+- Settings not loading or persisting
+- Permission errors
+- Type mismatches
+- Python-specific issues
+- Performance problems
 
-### Permission Denied when Setting Values
-Ensure your application has an ownership declaration in a configuration file:
-```conf
-@your_key = your_app_name
-```
+**Quick fixes:**
 
-### Settings Not Persisting
-- Check that `/var/system.conf.d/` directory exists and is writable
-- Verify your application has proper permissions
-- Use the `settings` CLI tool to test: `settings [category]key value`
+- **Permission Denied:** Ensure ownership is declared in config file: `@your_key = your_app`
+- **Settings Not Persisting:** Check `/var/system.conf.d/` exists and is writable
+- **File Changes Not Detected:** Verify inotify is supported on your filesystem
 
-### File Changes Not Detected
-- Ensure inotify is supported on your system
-- Check that configuration directories are accessible
-- Verify file system supports inotify events
+## Learn More
+
+### Additional Resources
+
+- **[Complete Documentation](docs/README.md)** - Full documentation index
+- **[API Reference](docs/api-reference.md)** - Detailed API documentation
+- **[Examples](docs/examples.md)** - Real-world code examples
+- **[Architecture](docs/architecture.md)** - Internal design and implementation
+- **[Contributing](docs/contributing.md)** - How to contribute to the project
 
 ## License
 

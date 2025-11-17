@@ -1,5 +1,6 @@
 ﻿#include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <filesystem>
 #include "../src/globalsettings.h"
 
 namespace py = pybind11;
@@ -20,13 +21,27 @@ public:
 PyGlobalSettings::PyGlobalSettings() {
     py::module sys = py::module::import("sys");
     py::list argv = sys.attr("argv");
-    m_settings.setId(argv[0].cast<std::string>());
+    std::string argv0 = argv[0].cast<std::string>();
+
+    // Extract just the filename to prevent path traversal
+    std::filesystem::path p(argv0);
+    std::string id = p.filename().string();
+
+    // setId() will validate the ID (defense in depth)
+    m_settings.setId(id);
 }
 
 PyGlobalSettings::PyGlobalSettings(std::string base) : m_settings(base) {
     py::module sys = py::module::import("sys");
     py::list argv = sys.attr("argv");
-    m_settings.setId(argv[0].cast<std::string>());
+    std::string argv0 = argv[0].cast<std::string>();
+
+    // Extract just the filename to prevent path traversal
+    std::filesystem::path p(argv0);
+    std::string id = p.filename().string();
+
+    // setId() will validate the ID (defense in depth)
+    m_settings.setId(id);
 }
 
 SettingValue PyGlobalSettings::get(std::string key, std::string category, SettingValue def) {

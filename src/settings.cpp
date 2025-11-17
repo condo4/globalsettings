@@ -28,8 +28,13 @@ int main(int argc, char *argv[])
         std::string gkey = argv[1];
         if(gkey.starts_with("["))
         {
-            category = gkey.substr(1, gkey.find(']') - 1);
-            gkey = gkey.substr(gkey.find(']') + 1);
+            size_t closing_bracket = gkey.find(']');
+            if (closing_bracket == std::string::npos) {
+                std::cerr << "ERROR: Malformed key (missing ']'): " << gkey << std::endl;
+                return 1;
+            }
+            category = gkey.substr(1, closing_bracket - 1);
+            gkey = gkey.substr(closing_bracket + 1);
         }
         if(argc == 2)
         {

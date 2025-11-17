@@ -313,11 +313,13 @@ bool GlobalSettings::set(const std::string &key, SettingValue value, const std::
 
 std::string GlobalSettings::id() const
 {
+    std::lock_guard<std::mutex> lock(m_ptr->m_mutex_data);
     return m_ptr->m_id;
 }
 
 void GlobalSettings::setId(const std::string &newid)
 {
+    std::lock_guard<std::mutex> lock(m_ptr->m_mutex_data);
     m_ptr->m_id = newid;
 }
 

@@ -1,3 +1,45 @@
+/**
+ * @file globalsettings.cpp
+ * @brief Implementation of GlobalSettings class
+ * @author GlobalSettings Team
+ * @version 1.1.0
+ *
+ * This file contains the implementation of the GlobalSettings class and its
+ * private implementation (GlobalSettingsPrivate). It handles:
+ * - Configuration file parsing (INI-style format)
+ * - Multi-source configuration merging (/etc and /var)
+ * - Thread-safe access to settings
+ * - Atomic file writes for setting modifications
+ * - File watching for automatic updates
+ * - Ownership-based write permission enforcement
+ *
+ * @section architecture Architecture
+ * Uses the PIMPL (Pointer to Implementation) idiom to hide implementation details
+ * and maintain ABI stability. The GlobalSettingsPrivate class contains:
+ * - Data storage (map of settings)
+ * - File watcher for automatic updates
+ * - Ownership information for write permissions
+ * - Mutexes for thread safety
+ * - File parsing and writing logic
+ *
+ * @section thread_safety Thread Safety
+ * All operations are protected by mutexes:
+ * - m_mutex_data: Protects settings data and ownership maps
+ * - m_mutex_notifier: Protects notifier callback vector
+ *
+ * @section file_format Configuration File Format
+ * INI-style format with ownership markers:
+ * @code
+ * [Category]
+ * key = value
+ * @owner_key = application_id  # Marks who can modify this key
+ * @endcode
+ *
+ * @note Uses inotify for file watching on Linux
+ * @note Implements atomic writes using temp file + rename pattern
+ * @note Validates IDs to prevent path traversal attacks
+ */
+
 #include "globalsettings.h"
 #include <iostream>
 #include <fstream>

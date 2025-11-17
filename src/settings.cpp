@@ -1,3 +1,41 @@
+/**
+ * @file settings.cpp
+ * @brief Command-line interface for GlobalSettings library
+ * @author GlobalSettings Team
+ * @version 1.1.0
+ *
+ * This is a simple command-line tool for reading and writing global settings.
+ * It provides a convenient interface for managing configuration from shell scripts
+ * or interactive sessions.
+ *
+ * @section usage Usage
+ * @code
+ * # List all settings
+ * settings
+ *
+ * # Get a specific value
+ * settings hostname
+ * settings [Network]hostname
+ *
+ * # Set a value (requires ownership)
+ * settings my_key "my value"
+ * settings [MyApp]port 8080
+ * @endcode
+ *
+ * @section behavior Behavior
+ * - No arguments: Lists all settings
+ * - One argument: Retrieves value for the specified key
+ * - Two arguments: Sets value for the specified key (if owned)
+ * - Key format: [Category]key or just key (implies General category)
+ *
+ * @section return_codes Return Codes
+ * - 0: Success
+ * - 1: Error (malformed key, write failure, etc.)
+ *
+ * @note Requires appropriate permissions to write settings
+ * @note Settings must be owned by the current application to be writable
+ */
+
 #include <iostream>
 #include <algorithm>
 #include <globalsettings.h>
@@ -5,6 +43,24 @@
 
 using namespace std;
 
+/**
+ * @brief Main entry point for settings command-line tool
+ *
+ * Provides three modes of operation:
+ * 1. List all settings (no arguments)
+ * 2. Get a setting value (one argument: key)
+ * 3. Set a setting value (two arguments: key value)
+ *
+ * @param argc Argument count
+ * @param argv Argument vector
+ *               argv[1]: Key (optional, can include [Category] prefix)
+ *               argv[2]: Value (optional, for set operation)
+ *
+ * @return 0 on success, 1 on error
+ *
+ * @note Categories can be embedded in the key using [Category]key syntax
+ * @note Values are automatically parsed (numbers, booleans, strings)
+ */
 int main(int argc, char *argv[])
 {
     GlobalSettings settings;

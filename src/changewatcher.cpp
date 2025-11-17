@@ -1,3 +1,36 @@
+/**
+ * @file changewatcher.cpp
+ * @brief Implementation of ChangeWatcher class
+ * @author GlobalSettings Team
+ * @version 1.1.0
+ *
+ * This file implements the ChangeWatcher class which provides file system
+ * monitoring using Linux inotify API. It runs a background thread that watches
+ * for file modifications, additions, and deletions, and invokes callbacks
+ * when events occur.
+ *
+ * @section implementation Implementation Details
+ * - Uses inotify for file system events (Linux-specific)
+ * - Uses eventfd for thread signaling (clean shutdown)
+ * - Background thread runs continuously until disabled
+ * - All callbacks are invoked from the background thread
+ * - Mutex protects shared state between threads
+ *
+ * @section events Monitored Events
+ * - IN_MODIFY, IN_CLOSE_WRITE: File written (triggers m_filewrited)
+ * - IN_CREATE: File added (triggers m_fileadded)
+ * - IN_DELETE, IN_DELETE_SELF, IN_MOVED_FROM: File removed (triggers m_fileremoved)
+ *
+ * @section thread_model Threading Model
+ * - Main thread: Creates ChangeWatcher, calls setEnable(), watch(), sets callbacks
+ * - Background thread: Blocks on select(), processes inotify events, invokes callbacks
+ * - Shutdown: Main thread signals via eventfd, background thread exits
+ *
+ * @note Linux-specific implementation
+ * @note Requires Linux kernel 2.6.13+ (for inotify)
+ * @note Watches are persistent until ChangeWatcher is destroyed
+ */
+
 #include "changewatcher.h"
 #include <iostream>
 #include <filesystem>
@@ -6,6 +39,12 @@
 #include <sys/eventfd.h>
 #include <unistd.h>
 
+/**
+ * @brief Constructs a ChangeWatcher instance
+ *
+ * Initializes inotify and creates the background monitoring thread.
+ * The watcher starts disabled and must be enabled with setEnable(true).
+ */
 ChangeWatcher::ChangeWatcher()
 {
 }

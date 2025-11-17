@@ -2,6 +2,8 @@
 #define UTILSSETTINGS_H
 
 #include "globalsettings.h"
+#include <iostream>
+#include <algorithm>
 
 /**
  * @brief Functor to convert SettingValue variants to string

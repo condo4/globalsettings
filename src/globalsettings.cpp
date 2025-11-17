@@ -360,6 +360,15 @@ bool GlobalSettings::set(const std::string &key, SettingValue value, const std::
                 return false;
             }
         }
+        // Write owner marker if this key has an owner
+        if (m_ptr->m_owner.count(key)) {
+            if (!(file << "@" << key.second << " = " << m_ptr->m_owner[key] << "\n")) {
+                std::cerr << "ERROR: Write failed at owner marker for key: " << key.second << std::endl;
+                file.close();
+                std::remove(temp_path.c_str());  // Clean up temp file
+                return false;
+            }
+        }
         if (!(file << key.second << " = " << valueToStr(value) << "\n")) {
             std::cerr << "ERROR: Write failed at key: " << key.second << std::endl;
             file.close();

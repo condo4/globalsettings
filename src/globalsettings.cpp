@@ -104,7 +104,7 @@ public:
         }
 
         m_watcher.setFileAdded([this](const std::string path){ refreshDirectory(path); });
-        m_watcher.setFileRemoved([this](const std::string path){ refreshAll(); });
+        m_watcher.setFileRemoved([this](const std::string /*path*/){ refreshAll(); });
         m_watcher.setFileWrited([this](const std::string path){ refreshFile(path); });
     }
 

@@ -7,6 +7,9 @@ option(WITH_PYTHON "Create python binding" ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Enable strict compilation flags
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Werror")
+
 find_package (Threads REQUIRED)
 
 add_library(globalsettings SHARED

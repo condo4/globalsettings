@@ -55,17 +55,22 @@ bool test_setid_valid() {
 bool test_size_method() {
     GlobalSettings settings;
     size_t size = settings.size();
-    ASSERT(size >= 0);
+    // size_t is always >= 0, just verify it exists
+    (void)size;
     return true;
 }
 
 bool test_foreach_method() {
     GlobalSettings settings;
     int count = 0;
-    settings.forEach([&count](const SettingKey& key, const SettingValue& value) {
+    bool success = true;
+    settings.forEach([&count, &success](const SettingKey& key, const SettingValue& /*value*/) {
         count++;
-        ASSERT(!key.second.empty());
+        if (key.second.empty()) {
+            success = false;
+        }
     });
+    ASSERT(success);
     ASSERT(count >= 0);
     return true;
 }
@@ -271,6 +276,7 @@ bool test_mixed_concurrent_operations() {
                     auto val = settings.get("key", "", SettingValue("default"));
                     std::string id = settings.id();
                     size_t s = settings.size();
+                    (void)val; (void)id; (void)s;  // Suppress unused warnings
                 } catch (...) {
                     errors++;
                 }

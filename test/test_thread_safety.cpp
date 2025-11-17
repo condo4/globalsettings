@@ -50,7 +50,9 @@ bool test_concurrent_id_reads() {
             for (int i = 0; i < ITERATIONS; i++) {
                 try {
                     std::string id = settings.id();
-                    ASSERT(!id.empty());
+                    if (id.empty()) {
+                        errors++;
+                    }
                 } catch (...) {
                     errors++;
                 }
@@ -109,7 +111,7 @@ bool test_concurrent_foreach() {
     for (int t = 0; t < NUM_THREADS; t++) {
         threads.emplace_back([&]() {
             try {
-                settings.forEach([&](const SettingKey& key, const SettingValue& value) {
+                settings.forEach([&](const SettingKey& /*key*/, const SettingValue& /*value*/) {
                     iterations++;
                 });
             } catch (...) {
@@ -140,6 +142,7 @@ bool test_concurrent_size() {
             for (int i = 0; i < ITERATIONS; i++) {
                 try {
                     size_t s = settings.size();
+                    (void)s;  // Suppress unused warning
                     // Should not crash
                 } catch (...) {
                     errors++;
@@ -174,6 +177,7 @@ bool test_mixed_concurrent_operations() {
                     auto val = settings.get("key", "", SettingValue("default"));
                     std::string id = settings.id();
                     size_t s = settings.size();
+                    (void)val; (void)id; (void)s;  // Suppress unused warnings
                 } catch (...) {
                     errors++;
                 }

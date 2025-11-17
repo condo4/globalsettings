@@ -32,7 +32,7 @@ public:
      *
      * The base name determines the configuration file paths:
      * - /etc/{base}.conf
-     * - /etc/{base}.conf.d/*
+     * - /etc/{base}.conf.d/ (all .conf files)
      * - /var/{base}.conf.d/<appid>.conf
      *
      * Default base is "system" if using the parameterless constructor.

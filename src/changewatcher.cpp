@@ -137,7 +137,7 @@ void ChangeWatcher::_runningLoop(ChangeWatcher *m)
                 int length = read(m->m_fdnotify, buffer, buffer_size);
                 if (length > 0) {
                     size_t i = 0;
-                    while (i < length) {
+                    while (i < static_cast<size_t>(length)) {
                         auto* event = reinterpret_cast<struct inotify_event*>(&buffer[i]);
 
                         // Copy callback and path while holding lock, then call without lock

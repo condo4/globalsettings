@@ -68,8 +68,8 @@ bool test_size_method() {
     GlobalSettings settings;
 
     size_t size = settings.size();
-    // Size should be >= 0
-    ASSERT(size >= 0);
+    // size_t is always >= 0, just verify it exists
+    (void)size;
 
     return true;
 }
@@ -79,12 +79,16 @@ bool test_foreach_method() {
     GlobalSettings settings;
 
     int count = 0;
-    settings.forEach([&count](const SettingKey& key, const SettingValue& value) {
+    bool success = true;
+    settings.forEach([&count, &success](const SettingKey& key, const SettingValue& /*value*/) {
         count++;
         // Verify key has two components (category, name)
-        ASSERT(!key.second.empty()); // Name should not be empty
+        if (key.second.empty()) {
+            success = false;
+        }
     });
 
+    ASSERT(success);
     // Should iterate over all settings
     ASSERT(count >= 0);
 
@@ -112,7 +116,8 @@ bool test_default_constructor() {
 
     // Should not crash
     ASSERT(!settings.id().empty());
-    ASSERT(settings.size() >= 0);
+    // size() returns size_t which is always >= 0
+    (void)settings.size();
 
     return true;
 }
@@ -123,7 +128,8 @@ bool test_custom_base_constructor() {
 
     // Should not crash
     ASSERT(!settings.id().empty());
-    ASSERT(settings.size() >= 0);
+    // size() returns size_t which is always >= 0
+    (void)settings.size();
 
     return true;
 }

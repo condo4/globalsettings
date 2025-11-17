@@ -71,11 +71,25 @@ void ChangeWatcher::setEnable(bool newVal)
     {
         // Stop thread
         m_enabled = false;
-        uint64_t value = 1;
-        write(m_fdevent, &value, sizeof(value));
-        close(m_fdevent);
-        m_thread.join();
-        close(m_fdnotify);
+
+        // Signal thread to stop (only if eventfd was successfully created)
+        if (m_fdevent != -1) {
+            uint64_t value = 1;
+            write(m_fdevent, &value, sizeof(value));
+            close(m_fdevent);
+            m_fdevent = -1;
+        }
+
+        // Wait for thread to finish (only if thread is joinable)
+        if (m_thread.joinable()) {
+            m_thread.join();
+        }
+
+        // Close inotify fd (only if it was successfully created)
+        if (m_fdnotify != -1) {
+            close(m_fdnotify);
+            m_fdnotify = -1;
+        }
     }
 }
 

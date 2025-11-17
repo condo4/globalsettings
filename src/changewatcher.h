@@ -10,8 +10,8 @@
 
 class ChangeWatcher
 {
-    int m_fdnotify;
-    int m_fdevent;
+    int m_fdnotify = -1;  // Initialize to -1 (invalid FD)
+    int m_fdevent = -1;   // Initialize to -1 (invalid FD)
     bool m_enabled {false};
     std::thread m_thread;
 

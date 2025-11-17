@@ -5,7 +5,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TEST_ROOT="/tmp/globalsettings_test_$$"
+TEST_ROOT="$SCRIPT_DIR/build/test_root_$$"
 
 # Colors for output
 RED='\033[0;31m'
@@ -36,6 +36,52 @@ elif [ "$(cat /proc/sys/kernel/unprivileged_userns_clone)" != "1" ]; then
     echo "Or permanently: echo 'kernel.unprivileged_userns_clone=1' | sudo tee -a /etc/sysctl.conf"
     exit 1
 fi
+
+# Check if build directory and test executable exist
+BUILD_DIR="$SCRIPT_DIR/build"
+LIB_BUILD_DIR="$SCRIPT_DIR/../build"
+
+if [ ! -d "$BUILD_DIR" ] || [ ! -f "$BUILD_DIR/test_functional" ]; then
+    echo -e "${YELLOW}→${NC} Build directory or test executable not found"
+
+    # Build library first if needed
+    if [ ! -f "$LIB_BUILD_DIR/libglobalsettings.so" ]; then
+        echo -e "${GREEN}→${NC} Building GlobalSettings library..."
+        mkdir -p "$LIB_BUILD_DIR"
+        cd "$LIB_BUILD_DIR"
+        if ! cmake .. ; then
+            echo -e "${RED}ERROR: Failed to configure library${NC}"
+            exit 1
+        fi
+        if ! make ; then
+            echo -e "${RED}ERROR: Failed to build library${NC}"
+            exit 1
+        fi
+        echo -e "${GREEN}✅ Library built successfully${NC}"
+    else
+        echo -e "${GREEN}→${NC} Library already built"
+    fi
+
+    # Build tests
+    echo -e "${GREEN}→${NC} Building test suite..."
+    mkdir -p "$BUILD_DIR"
+    cd "$BUILD_DIR"
+    if ! cmake .. ; then
+        echo -e "${RED}ERROR: Failed to configure tests${NC}"
+        exit 1
+    fi
+    if ! make test_functional ; then
+        echo -e "${RED}ERROR: Failed to build test_functional${NC}"
+        exit 1
+    fi
+    echo -e "${GREEN}✅ Tests built successfully${NC}"
+    echo ""
+else
+    echo -e "${GREEN}→${NC} Build directory found, tests ready"
+fi
+
+# Ensure build directory exists for TEST_ROOT
+mkdir -p "$BUILD_DIR"
 
 # Create test root directory
 echo -e "${GREEN}→${NC} Creating test filesystem: $TEST_ROOT"

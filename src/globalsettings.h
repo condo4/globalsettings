@@ -12,17 +12,17 @@
  * @code
  * #include "globalsettings.h"
  *
- * // Create settings instance
+ * - Create settings instance
  * GlobalSettings settings;
  *
- * // Read a value
+ * - Read a value
  * auto value = settings.get("hostname", "Network", SettingValue("localhost"));
  * std::string hostname = std::get<std::string>(value);
  *
- * // Write a value (requires ownership)
+ * - Write a value (requires ownership)
  * settings.set("my_setting", SettingValue(42), "MyApp");
  *
- * // Listen for changes
+ * - Listen for changes
  * settings.setNotifier([](const std::string& cat, const std::string& key, SettingValue val) {
  *     std::cout << "Setting changed: " << cat << ">" << key << std::endl;
  * });
@@ -76,7 +76,7 @@ class GlobalSettingsPrivate;
  * configuration settings with support for different value types. It reads
  * configuration from multiple sources in priority order:
  * 1. /etc/{base}.conf (system-wide, read-only)
- * 2. /etc/{base}.conf.d/*.conf (system-wide fragments, read-only)
+ * 2. /etc/{base}.conf.d/<fragment>.conf (system-wide fragments, read-only)
  * 3. /var/{base}.conf.d/<appid>.conf (per-application, writable)
  *
  * Settings can only be modified if the application owns them (marked with
@@ -94,7 +94,7 @@ public:
      *
      * Creates a settings manager that reads from:
      * - /etc/system.conf
-     * - /etc/system.conf.d/*.conf
+     * - /etc/system.conf.d/<fragment>.conf
      * - /var/system.conf.d/<appid>.conf
      *
      * The application ID is automatically determined from the executable name.

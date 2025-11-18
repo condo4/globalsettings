@@ -114,7 +114,10 @@ void ChangeWatcher::setEnable(bool newVal)
         // Signal thread to stop (only if eventfd was successfully created)
         if (m_fdevent != -1) {
             uint64_t value = 1;
-            write(m_fdevent, &value, sizeof(value));
+            ssize_t ret = write(m_fdevent, &value, sizeof(value));
+            if (ret == -1) {
+                std::cerr << "WARNING: Failed to signal thread via eventfd" << std::endl;
+            }
             close(m_fdevent);
             m_fdevent = -1;
         }

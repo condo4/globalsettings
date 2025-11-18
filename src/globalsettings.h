@@ -213,22 +213,46 @@ public:
      *
      * @param callback Function to call when settings change
      *                 Parameters: (category, key, new_value)
+     * @return Unique notifier ID that can be used to remove the notifier later
      *
      * @note Thread-safe
      * @note Callback is invoked with mutex held - keep it fast!
      * @note Multiple notifiers can be registered (they're additive)
      * @note Callback is called from the file watcher thread
+     * @note You must call removeNotifier() with the returned ID to unregister
      *
      * Example:
      * @code
-     * settings.setNotifier([](const std::string& cat, const std::string& key, SettingValue val) {
+     * size_t id = settings.setNotifier([](const std::string& cat, const std::string& key, SettingValue val) {
      *     std::cout << "Changed: " << cat << ">" << key << " = ";
      *     std::visit([](auto&& v) { std::cout << v; }, val);
      *     std::cout << std::endl;
      * });
+     * // Later: settings.removeNotifier(id);
      * @endcode
      */
-    void setNotifier(const std::function<void(const std::string&, const std::string&, SettingValue)>& callback);
+    std::size_t setNotifier(const std::function<void(const std::string&, const std::string&, SettingValue)>& callback);
+
+    /**
+     * @brief Removes a previously registered notifier
+     *
+     * Unregisters a callback that was previously registered with setNotifier().
+     * After this call, the callback will no longer be invoked for setting changes.
+     *
+     * @param notifierId The ID returned by setNotifier() when the callback was registered
+     *
+     * @note Thread-safe
+     * @note Safe to call with invalid IDs (no-op if ID not found)
+     * @note Must be called before the callback's captured variables are destroyed
+     *
+     * Example:
+     * @code
+     * size_t id = settings.setNotifier([](auto&, auto&, auto) { ... });
+     * // ... later ...
+     * settings.removeNotifier(id);
+     * @endcode
+     */
+    void removeNotifier(std::size_t notifierId);
 
     /**
      * @brief Gets the number of settings

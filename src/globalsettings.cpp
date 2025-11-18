@@ -116,7 +116,8 @@ class GlobalSettingsPrivate {
     std::mutex m_mutex_data;
     std::mutex m_mutex_notifier;
     bool m_bypass {false};
-    std::vector<std::function<void(const std::string&, const std::string&, SettingValue)>> m_notifier;
+    std::map<std::size_t, std::function<void(const std::string&, const std::string&, SettingValue)>> m_notifier;
+    std::size_t m_nextNotifierId {0};
 
 public:
     GlobalSettingsPrivate(GlobalSettings *parent, const std::string &base)
@@ -241,7 +242,7 @@ public:
             {
                 // New ITEM OR Data changed
                 m_data[key] = value;
-                for(auto &notifier: m_notifier)
+                for(auto& [id, notifier]: m_notifier)
                 {
                     notifier(key.first, key.second, value);
                 }
@@ -468,11 +469,27 @@ void GlobalSettings::setId(const std::string &newid)
     m_ptr->m_id = newid;
 }
 
-void GlobalSettings::setNotifier(const std::function<void (const std::string &, const std::string &, SettingValue)> &callback)
+std::size_t GlobalSettings::setNotifier(const std::function<void (const std::string &, const std::string &, SettingValue)> &callback)
 {
     std::lock_guard<std::mutex> lock(m_ptr->m_mutex_notifier);
-    m_ptr->m_notifier.push_back(callback);
+    std::size_t id = m_ptr->m_nextNotifierId++;
+    m_ptr->m_notifier[id] = callback;
     m_ptr->m_watcher.setEnable(true);
+    return id;
+}
+
+void GlobalSettings::removeNotifier(std::size_t notifierId)
+{
+    std::lock_guard<std::mutex> lock(m_ptr->m_mutex_notifier);
+    auto it = m_ptr->m_notifier.find(notifierId);
+    if (it != m_ptr->m_notifier.end()) {
+        m_ptr->m_notifier.erase(it);
+    }
+
+    // If no more notifiers, disable file watching
+    if (m_ptr->m_notifier.empty()) {
+        m_ptr->m_watcher.setEnable(false);
+    }
 }
 
 std::size_t GlobalSettings::size() const

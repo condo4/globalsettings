@@ -134,8 +134,6 @@ public:
 
             // Validate ID to prevent path traversal (defense in depth)
             if (!isValidId(m_id)) {
-                std::cerr << "WARNING: Binary name contains unsafe characters: \"" << m_id << "\"" << std::endl;
-                std::cerr << "         Using 'unknown' as ID instead" << std::endl;
                 m_id = "unknown";
             }
 

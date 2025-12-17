@@ -126,16 +126,11 @@ public:
         ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
         if (count <= 0 || count >= PATH_MAX) {
             std::cerr << "WARNING: Cannot determine application path, using 'unknown' as ID" << std::endl;
-            m_id = "unknown";
+            m_id = "";
         } else {
             std::string binary = std::string(result, count);
             std::filesystem::path bin = binary;
             m_id = bin.filename();
-
-            // Validate ID to prevent path traversal (defense in depth)
-            if (!isValidId(m_id)) {
-                m_id = "unknown";
-            }
 
             if(m_id == "settings")
             {
@@ -455,15 +450,6 @@ std::string GlobalSettings::id() const
 void GlobalSettings::setId(const std::string &newid)
 {
     std::lock_guard<std::mutex> lock(m_ptr->m_mutex_data);
-
-    // Validate ID to prevent path traversal attacks
-    if (!isValidId(newid)) {
-        std::cerr << "ERROR: Invalid ID (potential path traversal): \"" << newid << "\"" << std::endl;
-        std::cerr << "       IDs must contain only alphanumeric characters, dash, and underscore" << std::endl;
-        std::cerr << "       Keeping current ID: \"" << m_ptr->m_id << "\"" << std::endl;
-        return;
-    }
-
     m_ptr->m_id = newid;
 }
 

@@ -137,6 +137,22 @@ public:
     GlobalSettings(GlobalSettings&& other) noexcept;
 
     /**
+     * @brief Move assignment operator
+     *
+     * Transfers ownership of resources from another GlobalSettings instance.
+     * The moved-from object is left in a valid but unspecified state.
+     * If this object already owns resources, they are properly released first.
+     *
+     * @param other The GlobalSettings instance to move from
+     * @return Reference to this object
+     *
+     * @note Thread-safe
+     * @note The moved-from object should not be used except for destruction or assignment
+     * @note Self-assignment is handled correctly
+     */
+    GlobalSettings& operator=(GlobalSettings&& other) noexcept;
+
+    /**
      * @brief Virtual destructor
      *
      * Stops file watching and releases all resources.

@@ -374,6 +374,14 @@ GlobalSettings::GlobalSettings(GlobalSettings&& other) noexcept
 {
 }
 
+GlobalSettings& GlobalSettings::operator=(GlobalSettings&& other) noexcept
+{
+    if (this != &other) {
+        m_ptr = std::move(other.m_ptr);
+    }
+    return *this;
+}
+
 SettingValue GlobalSettings::get(const std::string &key, const std::string &category, SettingValue def) const
 {
     std::lock_guard<std::mutex> lock(m_ptr->m_mutex_data);

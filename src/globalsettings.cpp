@@ -7,7 +7,7 @@
  * This file contains the implementation of the GlobalSettings class and its
  * private implementation (GlobalSettingsPrivate). It handles:
  * - Configuration file parsing (INI-style format)
- * - Multi-source configuration merging (/etc and /var)
+ * - Multi-source configuration merging (/etc, /var and /tmp)
  * - Thread-safe access to settings
  * - Atomic file writes for setting modifications
  * - File watching for automatic updates
@@ -32,7 +32,8 @@
  * @code
  * [Category]
  * key = value
- * @owner_key = application_id  # Marks who can modify this key
+ * @owner_key = application_id  # Marks who can modify this key (saved in /var/)
+ * ~volatile_key = application_id  # Marks volatile variable (saved in /tmp/)
  * @endcode
  *
  * @note Uses inotify for file watching on Linux
@@ -104,6 +105,7 @@ class GlobalSettingsPrivate {
     std::map<SettingKey, SettingValue> m_data;
     ChangeWatcher m_watcher;
     std::map<SettingKey, std::string> m_owner;
+    std::map<SettingKey, std::string> m_volatile_owner;
     std::string m_id;
     std::string m_base;
     std::mutex m_mutex_data;
@@ -180,6 +182,11 @@ public:
             if(key.starts_with("@"))
             {
                 m_owner[SettingKey(category, key.substr(1))] = value;
+                continue;
+            }
+            if(key.starts_with("~"))
+            {
+                m_volatile_owner[SettingKey(category, key.substr(1))] = value;
                 continue;
             }
             if(key.ends_with("/owner"))
@@ -286,6 +293,7 @@ public:
         parseConf(getOverridePath(), cust_data, false);
 #endif
         parseConf("/var/" + m_base + ".conf", cust_data, true);
+        parseConf("/tmp/" + m_base + ".conf", cust_data, true);
         refreshData(cust_data);
     }
 };
@@ -332,8 +340,18 @@ bool GlobalSettings::set(const std::string &key, SettingValue value, const std::
     std::lock_guard<std::mutex> lock(m_ptr->m_mutex_data);
     SettingKey pkey(category, key);
     std::string id;
+    bool is_volatile = false;
 
-    if(!m_ptr->m_owner.count(pkey))
+    // Check if variable is regular RW or volatile
+    if(m_ptr->m_owner.count(pkey))
+    {
+        is_volatile = false;
+    }
+    else if(m_ptr->m_volatile_owner.count(pkey))
+    {
+        is_volatile = true;
+    }
+    else
     {
         std::cerr << "Variable " << category << ">" << key << " is not writable" << std::endl;
         return false;
@@ -341,12 +359,13 @@ bool GlobalSettings::set(const std::string &key, SettingValue value, const std::
 
     if(m_ptr->m_bypass)
     {
-        id = m_ptr->m_owner[pkey];
+        id = is_volatile ? m_ptr->m_volatile_owner[pkey] : m_ptr->m_owner[pkey];
     }
     else
     {
         id = m_ptr->m_id;
-        if(m_ptr->m_owner[pkey] != id)
+        std::string expected_owner = is_volatile ? m_ptr->m_volatile_owner[pkey] : m_ptr->m_owner[pkey];
+        if(expected_owner != id)
         {
             std::cerr << "Variable " << category << ">" << key << " is not own by " << m_ptr->m_id << std::endl;
             return false;
@@ -362,11 +381,12 @@ bool GlobalSettings::set(const std::string &key, SettingValue value, const std::
 
     // Permission is OK, get old custom variable
     std::map<SettingKey, SettingValue> cust_data;
-    m_ptr->parseFile("/var/" + m_ptr->m_base + ".conf.d/"+id+".conf", cust_data);
+    std::string base_path = is_volatile ? "/tmp/" : "/var/";
+    m_ptr->parseFile(base_path + m_ptr->m_base + ".conf.d/"+id+".conf", cust_data);
     cust_data[pkey] = value;
 
     // Use atomic write pattern: write to temp file, then rename
-    std::string config_path = "/var/" + m_ptr->m_base + ".conf.d/" + id + ".conf";
+    std::string config_path = base_path + m_ptr->m_base + ".conf.d/" + id + ".conf";
     std::string temp_path = config_path + ".tmp." + std::to_string(getpid());
 
     // Write to temporary file
@@ -393,6 +413,15 @@ bool GlobalSettings::set(const std::string &key, SettingValue value, const std::
         if (m_ptr->m_owner.count(key)) {
             if (!(file << "@" << key.second << " = " << m_ptr->m_owner[key] << "\n")) {
                 std::cerr << "ERROR: Write failed at owner marker for key: " << key.second << std::endl;
+                file.close();
+                std::remove(temp_path.c_str());  // Clean up temp file
+                return false;
+            }
+        }
+        // Write volatile owner marker if this key has a volatile owner
+        if (m_ptr->m_volatile_owner.count(key)) {
+            if (!(file << "~" << key.second << " = " << m_ptr->m_volatile_owner[key] << "\n")) {
+                std::cerr << "ERROR: Write failed at volatile owner marker for key: " << key.second << std::endl;
                 file.close();
                 std::remove(temp_path.c_str());  // Clean up temp file
                 return false;

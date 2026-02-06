@@ -1,5 +1,5 @@
 #!/bin/bash
-# Script to run tests in isolated namespace with fake /etc and /var
+# Script to run tests in isolated namespace with fake /etc, /tmp and /var
 # This allows testing file operations without root permissions
 
 set -e
@@ -91,6 +91,7 @@ mkdir -p "$TEST_ROOT"/{etc,var,tmp}
 echo -e "${GREEN}→${NC} Setting up test directories..."
 mkdir -p "$TEST_ROOT/etc/system.conf.d"
 mkdir -p "$TEST_ROOT/var/system.conf.d"
+mkdir -p "$TEST_ROOT/tmp/system.conf.d"
 
 # Create test configuration files
 echo -e "${GREEN}→${NC} Creating test configuration files..."
@@ -130,6 +131,18 @@ app_key = test_value
 [Settings]
 @test_setting = test_functional
 test_setting = initial_value
+EOF
+
+# Create volatile test config for the test application
+cat > "$TEST_ROOT/tmp/system.conf.d/test_functional.conf" << 'EOF'
+# Test application volatile configuration (writable)
+[General]
+~volatile_key = test_functional
+volatile_key = volatile_test_value
+
+[VolatileSettings]
+~test_volatile_setting = test_functional
+test_volatile_setting = initial_volatile_value
 EOF
 
 echo -e "${GREEN}→${NC} Test filesystem ready at: $TEST_ROOT"

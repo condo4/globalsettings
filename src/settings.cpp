@@ -37,7 +37,6 @@
  */
 
 #include <iostream>
-#include <algorithm>
 #include <globalsettings.h>
 #include <utilssettings.h>
 

@@ -5,7 +5,7 @@
  * @version 1.1.0
  *
  * This file provides the main interface for the GlobalSettings library, which manages
- * configuration settings from multiple sources (/etc and /var) with thread-safe access,
+ * configuration settings from multiple sources (/etc, /var and /tmp) with thread-safe access,
  * automatic file watching, and change notifications.
  *
  * @section usage Usage Example
@@ -37,7 +37,8 @@
  * @code
  * [Category]
  * key = value
- * @owner_key = application_id  # Ownership marker
+ * @owner_key = application_id  # Ownership marker (saved in /var/)
+ * ~volatile_key = application_id  # Volatile variable (saved in /tmp/), not persistent after reboot
  * @endcode
  */
 
@@ -78,9 +79,11 @@ class GlobalSettingsPrivate;
  * 1. /etc/{base}.conf (system-wide, read-only)
  * 2. /etc/{base}.conf.d/<fragment>.conf (system-wide fragments, read-only)
  * 3. /var/{base}.conf.d/<appid>.conf (per-application, writable)
+ * 4. /tmp/{base}.conf.d/<appid>.conf (per-application, volatile, writable)
  *
- * Settings can only be modified if the application owns them (marked with
- * @key = appid in configuration files).
+ * Settings can only be modified if the application owns them:
+ * - Regular RW variables: marked with @key = appid (saved in /var/)
+ * - Volatile variables: marked with ~key = appid (saved in /tmp/)
  *
  * @note All methods are thread-safe
  * @note Automatically watches configuration files for changes
@@ -96,6 +99,7 @@ public:
      * - /etc/system.conf
      * - /etc/system.conf.d/<fragment>.conf
      * - /var/system.conf.d/<appid>.conf
+     * - /tmp/system.conf.d/<appid>.conf
      *
      * The application ID is automatically determined from the executable name.
      *
@@ -111,6 +115,7 @@ public:
      * - /etc/{base}.conf
      * - /etc/{base}.conf.d/ (all .conf files)
      * - /var/{base}.conf.d/<appid>.conf
+     * - /tmp/{base}.conf.d/<appid>.conf
      *
      * Default base is "system" if using the parameterless constructor.
      *
@@ -153,7 +158,9 @@ public:
      * @brief Sets a setting value
      *
      * Writes a setting value to the configuration file. The application must own
-     * the setting (marked with @key = appid) for the write to succeed.
+     * the setting for the write to succeed. Settings can be:
+     * - Regular RW variables (marked with @key = appid, saved in /var/)
+     * - Volatile variables (marked with ~key = appid, saved in /tmp/)
      *
      * @param key The setting key name
      * @param value The value to set (string, int, double, or bool)

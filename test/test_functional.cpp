@@ -234,6 +234,104 @@ bool test_directory_permissions() {
     return true;
 }
 
+// Test reading from /tmp (volatile variables)
+bool test_read_volatile_config() {
+    GlobalSettings settings;
+
+    // Should read from /tmp/system.conf.d/test_functional.conf
+    auto volatile_value = settings.get("volatile_key", "", SettingValue("not_found"));
+
+    ASSERT_EQ(valueToStr(volatile_value), "volatile_test_value");
+
+    return true;
+}
+
+// Test writing to /tmp (volatile variables)
+bool test_write_volatile_config() {
+    GlobalSettings settings;
+
+    // The binary name is "test_functional", which is the default ID
+    // Try to write a new value to a volatile variable
+    bool success = settings.set("test_volatile_setting", SettingValue("new_volatile_value"), "VolatileSettings");
+
+    // Should succeed (we own this volatile setting)
+    ASSERT(success);
+
+    // Verify the value was written
+    auto read_value = settings.get("test_volatile_setting", "VolatileSettings", SettingValue("not_found"));
+    ASSERT_EQ(valueToStr(read_value), "new_volatile_value");
+
+    return true;
+}
+
+// Test atomic file writes for volatile variables
+bool test_volatile_atomic_write() {
+    GlobalSettings settings;
+    // Using default ID from binary name (test_functional)
+
+    // Write a value to volatile variable
+    bool success = settings.set("test_volatile_setting", SettingValue("volatile_atomic_test"), "VolatileSettings");
+    ASSERT(success);
+
+    // Verify file exists in /tmp/ (will be test_functional.conf)
+    std::string config_path = "/tmp/system.conf.d/test_functional.conf";
+    ASSERT(std::filesystem::exists(config_path));
+
+    // Verify no temp files left in /tmp/
+    for (const auto& entry : std::filesystem::directory_iterator("/tmp/system.conf.d")) {
+        std::string filename = entry.path().filename().string();
+        ASSERT(filename.find(".tmp.") == std::string::npos);
+    }
+
+    return true;
+}
+
+// Test volatile variable write permissions
+bool test_volatile_write_permissions() {
+    GlobalSettings settings;
+
+    // Try to write with wrong ID
+    settings.setId("wrong_app");
+
+    // Should fail (we don't own the volatile setting)
+    bool success = settings.set("test_volatile_setting", SettingValue("should_fail"), "VolatileSettings");
+
+    // Should NOT succeed
+    ASSERT(!success);
+
+    return true;
+}
+
+// Test that volatile and regular variables are independent
+bool test_volatile_independence() {
+    GlobalSettings settings;
+
+    // Write to regular variable
+    bool success1 = settings.set("test_setting", SettingValue("regular_value"), "Settings");
+    ASSERT(success1);
+
+    // Write to volatile variable
+    bool success2 = settings.set("test_volatile_setting", SettingValue("volatile_value"), "VolatileSettings");
+    ASSERT(success2);
+
+    // Verify regular variable is in /var/
+    std::string regular_path = "/var/system.conf.d/test_functional.conf";
+    ASSERT(std::filesystem::exists(regular_path));
+
+    // Verify volatile variable is in /tmp/
+    std::string volatile_path = "/tmp/system.conf.d/test_functional.conf";
+    ASSERT(std::filesystem::exists(volatile_path));
+
+    // Read back both values
+    auto regular_value = settings.get("test_setting", "Settings", SettingValue("not_found"));
+    auto volatile_value = settings.get("test_volatile_setting", "VolatileSettings", SettingValue("not_found"));
+
+    ASSERT_EQ(valueToStr(regular_value), "regular_value");
+    ASSERT_EQ(valueToStr(volatile_value), "volatile_value");
+
+    return true;
+}
+
 int main() {
     std::cout << "╔══════════════════════════════════════════════════════════╗" << std::endl;
     std::cout << "║   GlobalSettings Functional Tests (Namespace Isolated)  ║" << std::endl;
@@ -266,6 +364,13 @@ int main() {
     framework.add_test("Write permissions check", test_write_permissions);
     framework.add_test("Multiple write/read cycles", test_multiple_write_read);
     framework.add_test("File corruption resistance", test_file_corruption_resistance);
+
+    std::cout << std::endl << ">>> VOLATILE VARIABLE TESTS" << std::endl;
+    framework.add_test("Read volatile config (/tmp)", test_read_volatile_config);
+    framework.add_test("Write to /tmp", test_write_volatile_config);
+    framework.add_test("Volatile atomic file writes", test_volatile_atomic_write);
+    framework.add_test("Volatile write permissions check", test_volatile_write_permissions);
+    framework.add_test("Volatile/Regular independence", test_volatile_independence);
 
     std::cout << std::endl;
     bool success = framework.run_all();

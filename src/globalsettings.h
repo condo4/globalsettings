@@ -124,6 +124,24 @@ public:
     explicit GlobalSettings(const std::string &base);
 
     /**
+     * @brief Copy constructor (deleted)
+     *
+     * GlobalSettings is non-copyable because it manages unique system resources
+     * (file watchers, mutexes) that cannot be meaningfully copied.
+     * Use move semantics instead.
+     */
+    GlobalSettings(const GlobalSettings&) = delete;
+
+    /**
+     * @brief Copy assignment operator (deleted)
+     *
+     * GlobalSettings is non-copyable because it manages unique system resources
+     * (file watchers, mutexes) that cannot be meaningfully copied.
+     * Use move semantics instead.
+     */
+    GlobalSettings& operator=(const GlobalSettings&) = delete;
+
+    /**
      * @brief Move constructor
      *
      * Transfers ownership of resources from another GlobalSettings instance.

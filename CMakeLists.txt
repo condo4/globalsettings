@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 
-project(globalsettings VERSION 2.0.4 LANGUAGES CXX)
+project(globalsettings VERSION 2.0.5 LANGUAGES CXX)
 
 option(WITH_PYTHON "Create python binding" ON)
 

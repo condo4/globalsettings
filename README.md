@@ -15,6 +15,7 @@ The `GlobalSettings` library provides a robust, thread-safe system-wide configur
 - **Change Notifications** - Get callbacks when settings are modified
 - **Ownership Control** - Permission-based write access with ownership declarations
 - **Hierarchical Configuration** - Load from multiple sources with precedence
+- **Append Operator (+=)** - Concatenate strings or add numbers in configuration files
 - **Volatile Variables** - Temporary settings stored in `/tmp/` (not persistent after reboot)
 - **Custom Base Names** - Support multiple independent configuration systems
 - **Python Bindings** - Full Python API via pybind11
@@ -108,6 +109,11 @@ host = 0.0.0.0
 
 [app]
 debug = false
+features = "logging"
+features += "database"  # Append to string: "logging database"
+
+counter = 10
+counter += 5            # Add to number: 15
 
 # Declare ownership for writable settings (persistent in /var/)
 @port = myapp
@@ -123,6 +129,7 @@ temp_value = initial
 Settings are stored in configuration files with the `.conf` extension. The file format supports:
 - Categories in square brackets: `[CategoryName]`
 - Key-value pairs: `key = value`
+- Append operator: `key += value` (concatenate strings or add numbers)
 - Owner declarations:
   - Regular RW variables: `@key = owner_id` (persistent in `/var/`)
   - Volatile variables: `~key = owner_id` (temporary in `/tmp/`, not persistent after reboot)
@@ -135,6 +142,47 @@ Settings are stored in configuration files with the `.conf` extension. The file 
 - Strings: `key = "value"` or `key = 'value'` or `key = value`
 - Numbers: `key = 42` or `key = 3.14`
 - Booleans: `key = true/false` or `key = on/off`
+
+### Append Operator (+=)
+
+The `+=` operator allows you to append to strings or add to numbers:
+
+**String Concatenation:**
+```conf
+features = "logging"
+features += "database"    # Result: "logging database"
+features += "cache"       # Result: "logging database cache"
+```
+
+**Numeric Addition:**
+```conf
+counter = 10
+counter += 5              # Result: 15
+counter += 3              # Result: 18
+
+price = 19.99
+price += 5.00             # Result: 24.99
+```
+
+**Key Features:**
+- Strings are concatenated with exactly one space (automatic space normalization)
+- Numbers are added together (supports int, double, and mixed types)
+- Works across configuration file hierarchy
+- Multiple appends are supported
+
+**Example across files:**
+```conf
+# /etc/system.conf
+compiler_flags = "-Wall"
+
+# /etc/system.conf.d/dev.conf
+compiler_flags += "-g"
+
+# /var/system.conf.d/myapp.conf
+compiler_flags += "-DMYAPP"
+
+# Result: compiler_flags = "-Wall -g -DMYAPP"
+```
 
 ### Configuration Hierarchy
 

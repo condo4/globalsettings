@@ -73,6 +73,12 @@ target_link_libraries(test_functional
     Threads::Threads
 )
 
+add_executable(test_append_operator test_append_operator.cpp)
+target_link_libraries(test_append_operator
+    globalsettings
+    Threads::Threads
+)
+
 # Set rpath so executables can find the library
 set_target_properties(test PROPERTIES
     BUILD_RPATH "${GLOBALSETTINGS_LIB_DIR}"
@@ -104,6 +110,11 @@ set_target_properties(test_functional PROPERTIES
     INSTALL_RPATH "${GLOBALSETTINGS_LIB_DIR}"
 )
 
+set_target_properties(test_append_operator PROPERTIES
+    BUILD_RPATH "${GLOBALSETTINGS_LIB_DIR}"
+    INSTALL_RPATH "${GLOBALSETTINGS_LIB_DIR}"
+)
+
 # Print instructions
 message(STATUS "")
 message(STATUS "═══════════════════════════════════════════════════════")
@@ -119,9 +130,11 @@ message(STATUS "  ./test_validation   - Run input validation tests")
 message(STATUS "  ./test_threads      - Run thread safety tests")
 message(STATUS "  ./test_path_traversal - Run path traversal protection tests")
 message(STATUS "  ./test_functional   - Run functional tests (needs namespace)")
+message(STATUS "  ./test_append_operator - Run += operator tests (needs namespace)")
 message(STATUS "")
 message(STATUS "Shell scripts:")
 message(STATUS "  ../run_with_namespace.sh - Run functional tests in namespace")
+message(STATUS "  ./test_append_operator.sh - Run += operator tests in namespace")
 message(STATUS "  ./test_cli_crash.sh - Run CLI crash protection tests")
 message(STATUS "  ./test_python_argv.py - Run Python argv injection tests")
 message(STATUS "")

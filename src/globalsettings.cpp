@@ -169,14 +169,22 @@ public:
                 if(category == "General") category.clear();
                 continue;
             }
-            size_t pos = line.find("=");
-            if (pos == std::string::npos) {
-                std::cerr << "WARNING: Malformed config line (missing '='): " << line << std::endl;
-                continue;
+            // Check for += operator
+            size_t pos = line.find("+=");
+            bool is_append = false;
+            if (pos != std::string::npos) {
+                is_append = true;
+            } else {
+                pos = line.find("=");
+                if (pos == std::string::npos) {
+                    std::cerr << "WARNING: Malformed config line (missing '='): " << line << std::endl;
+                    continue;
+                }
             }
+
             std::string key = line.substr(0, pos);
             trim(key);
-            std::string value = line.substr(pos + 1);
+            std::string value = line.substr(pos + (is_append ? 2 : 1));
             trim(value);
 
             if(key.starts_with("@"))
@@ -196,7 +204,59 @@ public:
                 continue;
             }
 
-            data[SettingKey(category, key)] = makeValue(value);
+            SettingKey skey(category, key);
+            SettingValue new_value = makeValue(value);
+
+            if (is_append && data.count(skey)) {
+                // Get current value
+                SettingValue current = data[skey];
+
+                // Handle append based on type
+                if (std::holds_alternative<std::string>(current) && std::holds_alternative<std::string>(new_value)) {
+                    // String concatenation with space handling
+                    std::string current_str = std::get<std::string>(current);
+                    std::string new_str = std::get<std::string>(new_value);
+
+                    // Ensure exactly one space between values
+                    bool current_has_trailing_space = !current_str.empty() && current_str.back() == ' ';
+                    bool new_has_leading_space = !new_str.empty() && new_str.front() == ' ';
+
+                    if (current_has_trailing_space || new_has_leading_space) {
+                        // Trim spaces from both ends
+                        while (!current_str.empty() && current_str.back() == ' ') {
+                            current_str.pop_back();
+                        }
+                        while (!new_str.empty() && new_str.front() == ' ') {
+                            new_str.erase(0, 1);
+                        }
+                    }
+
+                    // Add exactly one space and concatenate
+                    data[skey] = SettingValue(current_str + " " + new_str);
+                }
+                else if (std::holds_alternative<int>(current) && std::holds_alternative<int>(new_value)) {
+                    // Integer addition
+                    data[skey] = SettingValue(std::get<int>(current) + std::get<int>(new_value));
+                }
+                else if (std::holds_alternative<double>(current) && std::holds_alternative<double>(new_value)) {
+                    // Double addition
+                    data[skey] = SettingValue(std::get<double>(current) + std::get<double>(new_value));
+                }
+                else if (std::holds_alternative<int>(current) && std::holds_alternative<double>(new_value)) {
+                    // Mixed int + double = double
+                    data[skey] = SettingValue(std::get<int>(current) + std::get<double>(new_value));
+                }
+                else if (std::holds_alternative<double>(current) && std::holds_alternative<int>(new_value)) {
+                    // Mixed double + int = double
+                    data[skey] = SettingValue(std::get<double>(current) + std::get<int>(new_value));
+                }
+                else {
+                    std::cerr << "WARNING: Cannot append incompatible types for key: " << key << std::endl;
+                    data[skey] = new_value;  // Fallback to replacement
+                }
+            } else {
+                data[skey] = new_value;
+            }
         }
     }
 

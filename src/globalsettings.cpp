@@ -369,6 +369,11 @@ GlobalSettings::GlobalSettings(const std::string &base)
     m_ptr->refreshAll();
 }
 
+GlobalSettings::GlobalSettings(GlobalSettings&& other) noexcept
+    : m_ptr(std::move(other.m_ptr))
+{
+}
+
 SettingValue GlobalSettings::get(const std::string &key, const std::string &category, SettingValue def) const
 {
     std::lock_guard<std::mutex> lock(m_ptr->m_mutex_data);
@@ -574,5 +579,7 @@ void GlobalSettings::forEach(const std::function<void (const SettingKey &, const
 
 GlobalSettings::~GlobalSettings()
 {
-    m_ptr->m_watcher.setEnable(false);
+    if (m_ptr) {
+        m_ptr->m_watcher.setEnable(false);
+    }
 }

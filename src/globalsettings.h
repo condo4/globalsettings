@@ -124,6 +124,19 @@ public:
     explicit GlobalSettings(const std::string &base);
 
     /**
+     * @brief Move constructor
+     *
+     * Transfers ownership of resources from another GlobalSettings instance.
+     * The moved-from object is left in a valid but unspecified state.
+     *
+     * @param other The GlobalSettings instance to move from
+     *
+     * @note Thread-safe
+     * @note The moved-from object should not be used except for destruction or assignment
+     */
+    GlobalSettings(GlobalSettings&& other) noexcept;
+
+    /**
      * @brief Virtual destructor
      *
      * Stops file watching and releases all resources.

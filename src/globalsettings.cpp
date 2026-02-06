@@ -44,7 +44,6 @@
 #include <iostream>
 #include <fstream>
 #include <map>
-#include <vector>
 #include <filesystem>
 #include <climits>
 #include <mutex>
@@ -62,11 +61,6 @@ static inline void trim(std::string & str)
 {
     str.erase(str.begin(), std::find_if(str.begin(), str.end(), [](const unsigned char ch){return !std::isspace(ch);}));
     str.erase(std::find_if(str.rbegin(), str.rend(), [](const unsigned char ch){return !std::isspace(ch);}).base(), str.end());
-}
-
-static inline bool list_contains(std::vector<std::string> list, const std::string & str)
-{
-    return (std::find(list.begin(), list.end(), str) != list.end());
 }
 
 /**
@@ -107,7 +101,6 @@ static inline bool isValidId(const std::string& id)
 
 class GlobalSettingsPrivate {
     friend class GlobalSettings;
-    GlobalSettings *m_parent;
     std::map<SettingKey, SettingValue> m_data;
     ChangeWatcher m_watcher;
     std::map<SettingKey, std::string> m_owner;
@@ -120,8 +113,8 @@ class GlobalSettingsPrivate {
     std::size_t m_nextNotifierId {0};
 
 public:
-    GlobalSettingsPrivate(GlobalSettings *parent, const std::string &base)
-        : m_parent(parent), m_base(base) {
+    GlobalSettingsPrivate(const std::string &base)
+        : m_base(base) {
         char result[PATH_MAX];
         ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
         if (count <= 0 || count >= PATH_MAX) {
@@ -303,7 +296,7 @@ GlobalSettings::GlobalSettings()
 }
 
 GlobalSettings::GlobalSettings(const std::string &base)
-    : m_ptr(std::make_unique<GlobalSettingsPrivate>(this, base))
+    : m_ptr(std::make_unique<GlobalSettingsPrivate>(base))
 {
     m_ptr->refreshAll();
 }

@@ -15,6 +15,7 @@ The `GlobalSettings` library provides a robust, thread-safe system-wide configur
 - **Change Notifications** - Get callbacks when settings are modified
 - **Ownership Control** - Permission-based write access with ownership declarations
 - **Hierarchical Configuration** - Load from multiple sources with precedence
+- **Volatile Variables** - Temporary settings stored in `/tmp/` (not persistent after reboot)
 - **Custom Base Names** - Support multiple independent configuration systems
 - **Python Bindings** - Full Python API via pybind11
 - **CLI Tool** - Command-line utility for viewing and modifying settings
@@ -108,9 +109,13 @@ host = 0.0.0.0
 [app]
 debug = false
 
-# Declare ownership for writable settings
+# Declare ownership for writable settings (persistent in /var/)
 @port = myapp
 @debug = myapp
+
+# Declare volatile variables (temporary in /tmp/, lost on reboot)
+~temp_value = myapp
+temp_value = initial
 ```
 
 ## Configuration File Structure
@@ -118,7 +123,10 @@ debug = false
 Settings are stored in configuration files with the `.conf` extension. The file format supports:
 - Categories in square brackets: `[CategoryName]`
 - Key-value pairs: `key = value`
-- Owner declarations: `@key = owner_id` (or legacy format: `key/owner = owner_id`)
+- Owner declarations:
+  - Regular RW variables: `@key = owner_id` (persistent in `/var/`)
+  - Volatile variables: `~key = owner_id` (temporary in `/tmp/`, not persistent after reboot)
+  - Legacy format: `key/owner = owner_id` (deprecated)
 - Comments: Lines starting with `#` are ignored
 - Empty lines are ignored
 
@@ -136,12 +144,17 @@ Settings are stored in configuration files with the `.conf` extension. The file 
   ├── 00-defaults.conf
   ├── 10-network.conf
   └── 20-myapp.conf
-/var/system.conf.d/                 # Application settings (read-write)
+/var/system.conf.d/                 # Application settings (read-write, persistent)
+  ├── myapp.conf
+  └── otherapp.conf
+/tmp/system.conf.d/                 # Volatile settings (read-write, temporary)
   ├── myapp.conf
   └── otherapp.conf
 ```
 
 Settings are loaded in order with later files overriding earlier ones.
+
+**Note:** Settings in `/tmp/` are volatile and will be lost after system reboot. Use volatile variables (`~key = owner`) for temporary runtime configuration that doesn't need to persist.
 
 ## Building
 
@@ -187,7 +200,8 @@ GlobalSettings customSettings("fiber_application");
 The base name determines the configuration file paths:
 - `/etc/{base}.conf` - System defaults (read-only)
 - `/etc/{base}.conf.d/*` - System configuration fragments (read-only)
-- `/var/{base}.conf.d/<appid>.conf` - Persistent write data storage
+- `/var/{base}.conf.d/<appid>.conf` - Persistent write data storage (regular RW variables)
+- `/tmp/{base}.conf.d/<appid>.conf` - Volatile write data storage (temporary, lost on reboot)
 
 Default base is `"system"` if using the parameterless constructor.
 
@@ -325,7 +339,8 @@ The system reads configuration from:
 
  - `/etc/system.conf` - System defaults (read-only)
  - `/etc/system.conf.d/*` - System configuration fragments (read-only, owned by project packages)
- - `/var/system.conf.d/<appid>.conf` - Persistent write data storage (set)
+ - `/var/system.conf.d/<appid>.conf` - Persistent write data storage (regular RW variables)
+ - `/tmp/system.conf.d/<appid>.conf` - Volatile write data storage (temporary, lost on reboot)
 
 ### Custom Base Configuration
 You can specify a custom base name to use different configuration files:
@@ -337,18 +352,52 @@ GlobalSettings settings("myapp");
 This will use:
  - `/etc/myapp.conf` - System defaults (read-only)
  - `/etc/myapp.conf.d/*` - System configuration fragments (read-only)
- - `/var/myapp.conf.d/<appid>.conf` - Persistent write data storage (set)
+ - `/var/myapp.conf.d/<appid>.conf` - Persistent write data storage (regular RW variables)
+ - `/tmp/myapp.conf.d/<appid>.conf` - Volatile write data storage (temporary)
 
 This is useful for:
 - Multiple independent configuration systems on the same machine
 - Application-specific configuration hierarchies
 - Testing with isolated configuration sets
 
+### Variable Types
+
+**Regular RW Variables** (declared with `@key = owner`):
+- Stored in `/var/{base}.conf.d/`
+- Persistent across reboots
+- Suitable for configuration that should be saved permanently
+- Example: User preferences, network settings, application state
+
+**Volatile Variables** (declared with `~key = owner`):
+- Stored in `/tmp/{base}.conf.d/`
+- Temporary storage, cleared on reboot
+- Suitable for runtime state that doesn't need persistence
+- Example: Session data, temporary flags, runtime counters
+
 ## Permissions
 
-Settings must be declared writable using `@key = owner_id` or legacy format `key/owner = owner_id`.
+Settings must be declared writable using ownership markers:
+- **Regular RW variables**: `@key = owner_id` (persistent in `/var/`)
+- **Volatile variables**: `~key = owner_id` (temporary in `/tmp/`)
+- **Legacy format**: `key/owner = owner_id` (deprecated, use `@key` instead)
+
 The owner should be the binary filename of the application.
 Only the declared owner can modify the setting if the program name matches.
+
+### Example Configuration
+
+```conf
+[app]
+# Persistent setting (survives reboot)
+@hostname = myapp
+hostname = localhost
+
+# Volatile setting (lost on reboot)
+~session_id = myapp
+session_id = abc123
+
+# Both can be read and written by myapp
+```
 
 ### Settings Command-Line Tool
 
@@ -357,20 +406,32 @@ A CLI tool is provided for viewing and modifying settings (bypasses ownership re
 ```bash
 # Display all settings
 settings
+settings -s custom_base          # Use custom base name
 
 # Get a specific setting value
 settings [category]key
+settings -s myapp [category]key  # Get from custom base
 
-# Set a setting value
+# Set a setting value (works for both regular and volatile variables)
 settings [category]key value
+settings --source myapp [category]key value
+
+# Show help
+settings --help
 
 # Examples:
-settings                          # Show all settings
+settings                          # Show all settings (default "system" base)
+settings -s myapp                 # Show all settings from "myapp" base
 settings hostname                 # Get hostname setting
 settings [network]port            # Get port in network category
-settings [network]port 8080       # Set port to 8080
-settings debug true               # Set debug to true
+settings [network]port 8080       # Set port to 8080 (persistent if declared with @)
+settings debug true               # Set debug to true (volatile if declared with ~)
+settings -s custom host localhost # Set host in custom base
 ```
+
+**Options:**
+- `-s, --source <name>`: Use custom base name (default: "system")
+- `-h, --help`: Show help message
 
 **WARNING**: The settings tool bypasses ownership restrictions and should be used ONLY for debugging purposes.
 

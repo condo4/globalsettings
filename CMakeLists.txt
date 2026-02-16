@@ -73,7 +73,7 @@ if(WITH_QT)
   target_link_libraries(GlobalSettingsPlugin
     PRIVATE
       Qt${QT_VERSION_MAJOR}::Qml
-      ${library_name}
+      globalsettings-qt
   )
 
   install(TARGETS GlobalSettingsPlugin  DESTINATION ${QML_MODULE_INSTALL_PATH}/GlobalSettings)

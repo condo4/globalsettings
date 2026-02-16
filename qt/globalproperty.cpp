@@ -55,12 +55,22 @@ public:
         : q_ptr(parent)
     {
     }
+
+    ~GlobalPropertyPrivate()
+    {
+        // Cleanup notifier on destruction
+        if (m_settings && m_notifierId != 0) {
+            m_settings->removeNotifier(m_notifierId);
+        }
+    }
+
     GlobalProperty * const q_ptr;
     std::shared_ptr<GlobalSettings> m_settings;
     QString root;
     QString category;
     QString item;
     QVariant def;
+    std::size_t m_notifierId = 0;
 
     bool setKey(const QString &key)
     {
@@ -84,10 +94,38 @@ public:
         category = match.captured(2).isEmpty() ? "General" : match.captured(2);
         item = match.captured(3);
 
+        // Remove previous notifier if exists
+        if (m_settings && m_notifierId != 0) {
+            m_settings->removeNotifier(m_notifierId);
+            m_notifierId = 0;
+        }
+
+        // Get GlobalSettings instance for this root
         m_settings = GlobalSettingsProvider::get(root);
+
+        // Register callback to receive change notifications
+        if (m_settings) {
+            m_notifierId = m_settings->setNotifier(
+                [this](const std::string& cat, const std::string& key, SettingValue val) {
+                    this->event(cat, key, val);
+                }
+            );
+        }
 
         return true;
     }
+
+    void event(const std::string& cat, const std::string& key, SettingValue)
+    {
+        Q_Q(GlobalProperty);
+
+        // Filter: only react to changes for our specific category/item
+        if (cat == category.toStdString() && key == item.toStdString()) {
+            // Our watched property has changed, notify Qt binding system
+            emit q->valueChanged();
+        }
+    }
+
     Q_DECLARE_PUBLIC(GlobalProperty)
 };
 

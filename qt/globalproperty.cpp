@@ -78,11 +78,12 @@ public:
             return false;
         }
 
-        // Pattern: ^(?:\{([^}]+)\})?(?:\[([^\]]+)\])?(.+)$
-        // Group 1: root (optional, between {})
+        // Pattern: ^(?:([^:\[\]]+):)?(?:\[([^\]]+)\])?(.+)$
+        // Group 1: root (optional, before ':')
         // Group 2: category (optional, between [])
         // Group 3: item (required, remaining text)
-        static const QRegularExpression re("^(?:\\{([^}]+)\\})?(?:\\[([^\\]]+)\\])?(.+)$");
+        // Examples: "[foo]bar", "myapp:[foo]bar", "toto", "myapp:toto"
+        static const QRegularExpression re("^(?:([^:\\[\\]]+):)?(?:\\[([^\\]]+)\\])?(.+)$");
 
         QRegularExpressionMatch match = re.match(key);
         if (!match.hasMatch()) {
@@ -169,7 +170,7 @@ QString GlobalProperty::key() const
 
     // Add root if not default
     if (d->root != "system") {
-        result += "{" + d->root + "}";
+        result += d->root + ":";
     }
 
     // Add category if not default

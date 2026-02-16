@@ -3,50 +3,6 @@
 #include <globalsettings.h>
 #include <QRegularExpression>
 
-QVariant toQVariant(const SettingValue &value, QVariant defvalue = QVariant())
-{
-    if(std::holds_alternative<std::string>(value))
-    {
-        return QString::fromStdString(std::get<std::string>(value));
-    }
-    if(std::holds_alternative<int>(value))
-    {
-        return  std::get<int>(value);
-    }
-    if(std::holds_alternative<bool>(value))
-    {
-        return  std::get<bool>(value);
-    }
-    if(std::holds_alternative<double>(value))
-    {
-        return  std::get<double>(value);
-    }
-    return QVariant(defvalue);
-}
-
-SettingValue fromQVariant(const QVariant &value)
-{
-    if(value.isNull())
-        return SettingValue();
-
-    switch (value.userType())
-    {
-    case QMetaType::Int:
-        return value.value<int>();
-
-    case QMetaType::QString:
-        return value.toString().toStdString();
-
-    case QMetaType::Bool:
-        return value.value<bool>();
-
-    case QMetaType::Double:
-        return value.value<double>();
-
-    default:
-        return false;
-    }
-}
 
 class GlobalPropertyPrivate
 {

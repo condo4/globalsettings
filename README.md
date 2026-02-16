@@ -4,7 +4,7 @@
 
 ## Overview
 
-The `GlobalSettings` library provides a robust, thread-safe system-wide configuration management solution for C++ applications with Python bindings. It enables reading and writing settings from hierarchical configuration files with category support, type safety, automatic file watching, and change notifications.
+The `GlobalSettings` library provides a robust, thread-safe system-wide configuration management solution for C++ applications with Python and Qt/QML bindings. It enables reading and writing settings from hierarchical configuration files with category support, type safety, automatic file watching, and change notifications.
 
 ## Features
 
@@ -19,6 +19,7 @@ The `GlobalSettings` library provides a robust, thread-safe system-wide configur
 - **Volatile Variables** - Temporary settings stored in `/tmp/` (not persistent after reboot)
 - **Custom Base Names** - Support multiple independent configuration systems
 - **Python Bindings** - Full Python API via pybind11
+- **Qt/QML Bindings** - Seamless integration with Qt applications and QML property binding
 - **CLI Tool** - Command-line utility for viewing and modifying settings
 
 ## Documentation
@@ -33,6 +34,7 @@ The `GlobalSettings` library provides a robust, thread-safe system-wide configur
 | **[API Reference](docs/api-reference.md)** | Complete C++ API documentation |
 | **[Configuration Format](docs/configuration.md)** | Configuration file syntax and best practices |
 | **[Python Bindings](docs/python-bindings.md)** | Python API and examples |
+| **[Qt/QML Bindings](docs/qt_binding.md)** | Qt/QML integration with automatic property binding |
 | **[Examples](docs/examples.md)** | Practical code examples for common use cases |
 | **[Troubleshooting](docs/troubleshooting.md)** | Solutions to common problems |
 

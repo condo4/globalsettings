@@ -208,9 +208,15 @@ For applications that need shared instances across components:
 
 ```cpp
 #include <globalsettingsprovider.h>
+#include <QCoreApplication>
 #include <QDebug>
 
-void example() {
+int main(int argc, char *argv[]) {
+    QCoreApplication app(argc, argv);
+
+    // IMPORTANT: Set application name for ownership identification
+    app.setApplicationName("myapp");
+
     // Get or create a shared GlobalSettings instance
     auto settings = GlobalSettingsProvider::get("myapp");
 
@@ -218,9 +224,11 @@ void example() {
         // Read value
         SettingValue value = settings->get("port", "Network", SettingValue(8080));
 
-        // Write value
+        // Write value (only works if @port = myapp in config file)
         settings->set("port", SettingValue(9000), "Network");
     }
+
+    return app.exec();
 }
 ```
 
@@ -228,6 +236,9 @@ void example() {
 - Singleton pattern: Same instance shared across your application
 - Managed lifecycle: Attached to `QCoreApplication`
 - Efficient: No duplicate file watchers
+- Automatic ID: Uses `QCoreApplication::applicationName()` for ownership checks
+
+**Important:** Always call `QCoreApplication::setApplicationName()` before using `GlobalSettingsProvider`. This name is used to determine which settings your application can modify (based on ownership markers like `@key = myapp` in configuration files).
 
 ### Type Conversion Helpers
 

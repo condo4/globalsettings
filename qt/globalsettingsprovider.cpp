@@ -34,5 +34,8 @@ std::shared_ptr<GlobalSettings> GlobalSettingsProvider::get(QString id)
     // else create it (GlobalSettings(id.toStdString()), register in the map and return it
     auto settings = std::make_shared<GlobalSettings>(id.toStdString());
     provider->m_settings[id] = settings;
+    if(!app->applicationName().isEmpty())
+        settings->setId(app->applicationName().toStdString());
+
     return settings;
 }

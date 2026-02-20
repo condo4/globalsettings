@@ -45,6 +45,7 @@ if(WITH_QT)
   set(CMAKE_AUTOMOC ON)
   find_package(QT NAMES Qt6 Qt5 COMPONENTS Core Qml REQUIRED)
   find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core Qml REQUIRED)
+  message(STATUS "Create bingings for Qt${QT_VERSION_MAJOR}")
   add_library(globalsettings-qt SHARED
     qt/globalsettingsprovider.h qt/globalsettingsprovider.cpp
     qt/globalproperty.h qt/globalproperty.cpp

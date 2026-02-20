@@ -12,6 +12,7 @@ class GlobalProperty : public QObject
     Q_OBJECT
     Q_PROPERTY(QVariant value READ value WRITE setValue NOTIFY valueChanged)
     Q_PROPERTY(QString key READ key WRITE setKey NOTIFY keyChanged)
+    Q_PROPERTY(QVariant defaultValue READ defaultValue WRITE setDefaultValue NOTIFY defaultValueChanged)
 
 public:
     explicit GlobalProperty(QString key = "", QObject *parent = nullptr);
@@ -23,9 +24,14 @@ public:
     QString key() const;
     void setKey(const QString &newKey);
 
+    QVariant defaultValue() const;
+    void setDefaultValue(const QVariant &newDefault);
+
+
 signals:
     void valueChanged();
     void keyChanged();
+    void defaultValueChanged();
 
 private:
     std::unique_ptr<GlobalPropertyPrivate> d_ptr;

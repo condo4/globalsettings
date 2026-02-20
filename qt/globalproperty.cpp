@@ -147,3 +147,18 @@ void GlobalProperty::setKey(const QString &newKey)
         emit keyChanged();
     }
 }
+
+QVariant GlobalProperty::defaultValue() const
+{
+    Q_D(const GlobalProperty);
+    return d->def;
+}
+
+void GlobalProperty::setDefaultValue(const QVariant &newDefault)
+{
+    Q_D(GlobalProperty);
+    if (d->def == newDefault)
+        return;
+    d->def = newDefault;
+    emit defaultValueChanged();
+}

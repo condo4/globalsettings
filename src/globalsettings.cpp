@@ -366,6 +366,13 @@ GlobalSettings::GlobalSettings()
 GlobalSettings::GlobalSettings(const std::string &base)
     : m_ptr(std::make_unique<GlobalSettingsPrivate>(base))
 {
+    /* Create TMP folder if not exists, to support watcher on it */
+    std::string dirPath = "/tmp/" + m_ptr->m_base + ".conf.d";
+
+    if (!std::filesystem::exists(dirPath)) {
+        std::filesystem::create_directories(dirPath);
+    }
+
     m_ptr->refreshAll();
 }
 

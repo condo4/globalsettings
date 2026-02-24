@@ -155,7 +155,7 @@ if(WITH_QT)
       EXPORT "GlobalSettingsQtTargets"
       LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
       RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-      PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_PREFIX}/include/globalsettings-qt"
+      PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_PREFIX}/include/globalsettings"
   )
   write_basic_package_version_file(
       "${CMAKE_CURRENT_BINARY_DIR}/generated/GlobalSettingsQtConfigVersion.cmake" COMPATIBILITY SameMajorVersion

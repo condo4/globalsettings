@@ -9,7 +9,7 @@ The `GlobalSettings` library provides a robust, thread-safe system-wide configur
 ## Features
 
 - **Thread-Safe Operations** - All methods are thread-safe for concurrent access
-- **Multiple Value Types** - Support for string, int, double, and boolean values
+- **Multiple Value Types** - Support for string, int, double, boolean, and string list values
 - **Category Organization** - Logical grouping of related settings
 - **Automatic File Watching** - Detect and reload configuration changes via inotify
 - **Change Notifications** - Get callbacks when settings are modified
@@ -117,6 +117,9 @@ features += "database"  # Append to string: "logging database"
 counter = 10
 counter += 5            # Add to number: 15
 
+# String list (comma-separated quoted values)
+allowed_hosts = "localhost", "127.0.0.1", "::1"
+
 # Declare ownership for writable settings (persistent in /var/)
 @port = myapp
 @debug = myapp
@@ -144,6 +147,7 @@ Settings are stored in configuration files with the `.conf` extension. The file 
 - Strings: `key = "value"` or `key = 'value'` or `key = value`
 - Numbers: `key = 42` or `key = 3.14`
 - Booleans: `key = true/false` or `key = on/off`
+- String lists: `key = "val1", "val2", "val3"` (comma-separated quoted strings)
 
 ### Append Operator (+=)
 
@@ -166,9 +170,16 @@ price = 19.99
 price += 5.00             # Result: 24.99
 ```
 
+**String List Merging:**
+```conf
+search_paths = "/usr/lib", "/usr/local/lib"
+search_paths += "/opt/myapp/lib"    # Extends the list: ["/usr/lib", "/usr/local/lib", "/opt/myapp/lib"]
+```
+
 **Key Features:**
 - Strings are concatenated with exactly one space (automatic space normalization)
 - Numbers are added together (supports int, double, and mixed types)
+- String lists are merged (elements from both lists combined into one)
 - Works across configuration file hierarchy
 - Multiple appends are supported
 
@@ -346,15 +357,16 @@ settings.setId("my_custom_id");
 
 ### Utility with SettingValue type: utilssettings.h
 
-**makeValue**: Convert std::string into SettingValue managing numeric, bool and string conversion
+**makeValue**: Convert std::string into SettingValue managing numeric, bool, string list and string conversion
 
 ```cpp
 #include <utilssettings.h>
 
-SettingValue v1 = makeValue("42");      // Integer
-SettingValue v2 = makeValue("3.14");    // Double
-SettingValue v3 = makeValue("true");    // Boolean
-SettingValue v4 = makeValue("text");    // String
+SettingValue v1 = makeValue("42");                       // Integer
+SettingValue v2 = makeValue("3.14");                     // Double
+SettingValue v3 = makeValue("true");                     // Boolean
+SettingValue v4 = makeValue("text");                     // String
+SettingValue v5 = makeValue("\"a\", \"b\", \"c\"");     // std::vector<std::string>{"a","b","c"}
 ```
 
 **valueToStr**: Convert SettingValue into std::string for display
@@ -486,12 +498,25 @@ settings -s custom host localhost # Set host in custom base
 **WARNING**: The settings tool bypasses ownership restrictions and should be used ONLY for debugging purposes.
 
 ## Value Types
-The system supports these value types through the SettingValue variant:
+The system supports these value types through the `SettingValue` variant:
 
- - std::string
- - int
- - double
- - bool
+| Type | Conf syntax | C++ type |
+|------|-------------|----------|
+| String | `key = "hello"` or `key = hello` | `std::string` |
+| Integer | `key = 42` | `int` |
+| Floating-point | `key = 3.14` | `double` |
+| Boolean | `key = true` / `key = on` | `bool` |
+| String list | `key = "a", "b", "c"` | `std::vector<std::string>` |
+
+**Accessing a string list in C++:**
+```cpp
+auto val = settings.get("allowed_hosts", "network", SettingValue());
+if (std::holds_alternative<std::vector<std::string>>(val)) {
+    for (const auto& host : std::get<std::vector<std::string>>(val)) {
+        std::cout << host << std::endl;
+    }
+}
+```
 
 ## Thread Safety
 

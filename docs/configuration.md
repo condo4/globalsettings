@@ -81,6 +81,35 @@ flag2 = 0
 
 Boolean values are case-insensitive.
 
+### String Lists
+
+A comma-separated sequence of quoted strings is parsed as `std::vector<std::string>`:
+
+```conf
+# Double-quoted list
+allowed_hosts = "localhost", "127.0.0.1", "::1"
+
+# Single-quoted list
+search_paths = '/usr/lib', '/usr/local/lib', '/opt/myapp/lib'
+
+# Mixed quotes are accepted per element
+tags = "release", 'stable', "production"
+```
+
+A **single** quoted value without a comma is still a plain `std::string`. At least one comma is required to produce a list.
+
+**Accessing in C++:**
+```cpp
+auto val = settings.get("allowed_hosts", "network", SettingValue());
+if (std::holds_alternative<std::vector<std::string>>(val)) {
+    for (const auto& host : std::get<std::vector<std::string>>(val)) {
+        std::cout << host << std::endl;
+    }
+}
+```
+
+**Serialisation:** `valueToStr()` converts a string list back to the `"v1", "v2", "v3"` format, so `set()` round-trips correctly.
+
 ## Categories
 
 Categories organize settings into logical groups:

@@ -250,6 +250,13 @@ public:
                     // Mixed double + int = double
                     data[skey] = SettingValue(std::get<double>(current) + std::get<int>(new_value));
                 }
+                else if (std::holds_alternative<std::vector<std::string>>(current) && std::holds_alternative<std::vector<std::string>>(new_value)) {
+                    // Vector concatenation
+                    auto merged = std::get<std::vector<std::string>>(current);
+                    const auto& new_vec = std::get<std::vector<std::string>>(new_value);
+                    merged.insert(merged.end(), new_vec.begin(), new_vec.end());
+                    data[skey] = merged;
+                }
                 else {
                     std::cerr << "WARNING: Cannot append incompatible types for key: " << key << std::endl;
                     data[skey] = new_value;  // Fallback to replacement

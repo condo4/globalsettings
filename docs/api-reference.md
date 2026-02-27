@@ -39,7 +39,7 @@ Retrieves a setting value.
   - `key`: Setting key name
   - `category`: Optional category name (default: "")
   - `defaultValue`: Value to return if setting not found
-- **Returns:** SettingValue (variant of string, int, double, bool)
+- **Returns:** SettingValue (variant of string, int, double, bool, or vector\<string\>)
 - **Thread-safe:** Yes
 
 **Examples:**
@@ -171,7 +171,7 @@ Sets a custom instance identifier.
 ### SettingValue
 
 ```cpp
-using SettingValue = std::variant<std::string, int, double, bool>
+using SettingValue = std::variant<std::string, int, double, bool, std::vector<std::string>>
 ```
 
 Variant type representing possible setting values.
@@ -198,14 +198,15 @@ Converts a string to the appropriate SettingValue type.
 
 - **Parameters:**
   - `str`: String to convert
-- **Returns:** SettingValue with appropriate type (bool, int, double, or string)
+- **Returns:** SettingValue with appropriate type (bool, int, double, string, or vector\<string\>)
 
 **Examples:**
 ```cpp
-auto v1 = makeValue("42");      // SettingValue(int)
-auto v2 = makeValue("3.14");    // SettingValue(double)
-auto v3 = makeValue("true");    // SettingValue(bool)
-auto v4 = makeValue("hello");   // SettingValue(string)
+auto v1 = makeValue("42");                      // SettingValue(int)
+auto v2 = makeValue("3.14");                    // SettingValue(double)
+auto v3 = makeValue("true");                    // SettingValue(bool)
+auto v4 = makeValue("hello");                   // SettingValue(string)
+auto v5 = makeValue("\"a\", \"b\", \"c\"");    // SettingValue(vector<string>{"a","b","c"})
 ```
 
 ### valueToStr()
@@ -222,10 +223,11 @@ Converts a SettingValue to string representation.
 
 **Examples:**
 ```cpp
-std::cout << valueToStr(SettingValue(42)) << std::endl;        // "42"
-std::cout << valueToStr(SettingValue(true)) << std::endl;      // "true"
-std::cout << valueToStr(SettingValue(3.14)) << std::endl;      // "3.14"
-std::cout << valueToStr(SettingValue("text")) << std::endl;    // "text"
+std::cout << valueToStr(SettingValue(42)) << std::endl;                              // "42"
+std::cout << valueToStr(SettingValue(true)) << std::endl;                            // "true"
+std::cout << valueToStr(SettingValue(3.14)) << std::endl;                            // "3.140000"
+std::cout << valueToStr(SettingValue("text")) << std::endl;                          // "text"
+std::cout << valueToStr(SettingValue(std::vector<std::string>{"a","b"})) << std::endl; // "\"a\", \"b\""
 ```
 
 ### valueToInt()
@@ -242,9 +244,10 @@ Converts a SettingValue to integer.
 
 Conversion rules:
 - `int`: Returns as-is
-- `double`: Converts to int
+- `double`: Truncates to int
 - `bool`: Returns 1 for true, 0 for false
 - `string`: Attempts to parse as integer
+- `vector<string>`: Returns the number of elements
 
 ## Error Handling
 

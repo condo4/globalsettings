@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QVariant>
+#include <QStringList>
 #include <globalsettings.h>
 
 class GlobalPropertyPrivate;
@@ -57,6 +58,13 @@ static inline QVariant toQVariant(const SettingValue &value, QVariant defvalue =
     {
         return  std::get<double>(value);
     }
+    if(std::holds_alternative<std::vector<std::string>>(value))
+    {
+        QStringList list;
+        for (const auto& s : std::get<std::vector<std::string>>(value))
+            list.append(QString::fromStdString(s));
+        return list;
+    }
     return QVariant(defvalue);
 }
 
@@ -78,6 +86,14 @@ static inline SettingValue fromQVariant(const QVariant &value)
 
     case QMetaType::Double:
         return value.value<double>();
+
+    case QMetaType::QStringList:
+    {
+        std::vector<std::string> vec;
+        for (const auto& s : value.toStringList())
+            vec.push_back(s.toStdString());
+        return vec;
+    }
 
     default:
         return false;

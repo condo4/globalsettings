@@ -76,6 +76,7 @@ The current value of the setting. Automatically updates when:
 - `int`
 - `double`
 - `bool`
+- `QStringList` (list of strings — from a comma-separated quoted list in the config file)
 
 ### Complete Example
 
@@ -256,6 +257,45 @@ QVariant qvar2(QString("test"));
 SettingValue setting2 = fromQVariant(qvar2);
 ```
 
+**Type mapping:**
+
+| `SettingValue` (C++) | `QVariant` / QML type |
+|---|---|
+| `std::string` | `QString` / `string` |
+| `int` | `int` |
+| `double` | `double` |
+| `bool` | `bool` |
+| `std::vector<std::string>` | `QStringList` / JS array of strings |
+
+**String list example:**
+
+```cpp
+// toQVariant: vector<string> → QStringList
+SettingValue hosts(std::vector<std::string>{"localhost", "127.0.0.1"});
+QVariant qvar = toQVariant(hosts);
+QStringList list = qvar.toStringList();  // ["localhost", "127.0.0.1"]
+
+// fromQVariant: QStringList → vector<string>
+QStringList qsl = {"localhost", "127.0.0.1"};
+SettingValue sv = fromQVariant(QVariant(qsl));
+// sv holds std::vector<std::string>{"localhost", "127.0.0.1"}
+```
+
+In QML, a `QStringList` is exposed as a JavaScript array of strings:
+
+```qml
+GlobalProperty {
+    id: allowedHosts
+    key: "myapp:[Network]allowed_hosts"
+}
+
+// allowedHosts.value is a JS array: ["localhost", "127.0.0.1", "::1"]
+Repeater {
+    model: allowedHosts.value
+    Text { text: modelData }
+}
+```
+
 ### Change Notifications in C++
 
 Register a callback to be notified when settings change:
@@ -361,6 +401,9 @@ timeout = 30
 @port = myapp
 port = 8080
 
+# String list: comma-separated quoted values → QStringList in Qt
+allowed_hosts = "localhost", "127.0.0.1", "::1"
+
 # Volatile marker: saved in /tmp/ (cleared on reboot)
 ~session_id = myapp
 session_id = abc123
@@ -392,6 +435,14 @@ total += 5
 - Strings (concatenated with space)
 - Integers (added)
 - Doubles (added)
+- String lists (elements merged into a single `QStringList`)
+
+```ini
+[Network]
+allowed_hosts = "localhost", "127.0.0.1"
+allowed_hosts += "10.0.0.1", "10.0.0.2"
+# Result QStringList: ["localhost", "127.0.0.1", "10.0.0.1", "10.0.0.2"]
+```
 
 ---
 

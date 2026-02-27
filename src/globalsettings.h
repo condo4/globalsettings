@@ -46,9 +46,10 @@
 #define GLOBALSETTINGS_H
 
 #include <functional>
+#include <memory>
 #include <variant>
 #include <string>
-#include <memory>
+#include <vector>
 
 /**
  * @brief Key type for settings, composed of category and name
@@ -59,14 +60,15 @@
 using SettingKey = std::pair<std::string, std::string>;
 
 /**
- * @brief Value type that can hold string, int, double or boolean
+ * @brief Value type that can hold string, int, double, boolean, or a list of strings
  *
  * Settings values are automatically parsed from configuration files:
  * - Numeric strings become int or double
  * - "true"/"false" become bool
+ * - Comma-separated quoted strings become std::vector<std::string>
  * - Everything else remains string
  */
-using SettingValue = std::variant<std::string, int, double, bool>;
+using SettingValue = std::variant<std::string, int, double, bool, std::vector<std::string>>;
 
 class GlobalSettingsPrivate;
 

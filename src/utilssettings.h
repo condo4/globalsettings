@@ -35,6 +35,7 @@
 #include "globalsettings.h"
 #include <iostream>
 #include <algorithm>
+#include <sstream>
 
 /**
  * @brief Functor to convert SettingValue variants to string
@@ -53,6 +54,14 @@ struct settingValueFunctor {
     std::string operator()(int x) const { return std::to_string(x); }  ///< Int to string
     std::string operator()(double x) const { return std::to_string(x); }  ///< Double to string
     std::string operator()(bool x) const { return x ? "true" : "false"; }  ///< Bool to "true"/"false"
+    std::string operator()(const std::vector<std::string> &x) const {  ///< Vector to "v1", "v2", ...
+        std::string result;
+        for (std::size_t i = 0; i < x.size(); i++) {
+            if (i > 0) result += ", ";
+            result += "\"" + x[i] + "\"";
+        }
+        return result;
+    }
 };
 
 /**
@@ -113,6 +122,7 @@ struct settingValueFunctorInt {
     int operator()(int x) const { return x; }  ///< Int passthrough
     int operator()(double x) const { return static_cast<int>(x); }  ///< Double truncation
     int operator()(bool x) const { return x ? 1 : 0; }  ///< Bool to 0/1
+    int operator()(const std::vector<std::string> &x) const { return static_cast<int>(x.size()); }  ///< Vector: return size
 };
 
 /**
@@ -142,6 +152,61 @@ static inline int valueToInt(const SettingValue &value)
 {
     return std::visit(settingValueFunctorInt(), value);
 }
+/**
+ * @brief Check if a string represents a comma-separated list of quoted strings
+ *
+ * Detects the syntax: "val1", "val2", "val3"
+ * Both single and double quotes are accepted. A comma must be present.
+ *
+ * @param value String to check
+ * @return true if string is a list of quoted strings separated by commas
+ */
+static inline bool isStringList(const std::string& value) {
+    if (value.empty() || (value[0] != '"' && value[0] != '\'')) return false;
+    size_t pos = 0;
+    bool found_comma = false;
+    while (pos < value.size()) {
+        while (pos < value.size() && std::isspace((unsigned char)value[pos])) pos++;
+        if (pos >= value.size()) break;
+        if (value[pos] != '"' && value[pos] != '\'') return false;
+        char quote = value[pos++];
+        while (pos < value.size() && value[pos] != quote) pos++;
+        if (pos >= value.size()) return false;  // No closing quote
+        pos++;  // skip closing quote
+        while (pos < value.size() && std::isspace((unsigned char)value[pos])) pos++;
+        if (pos >= value.size()) break;
+        if (value[pos] != ',') return false;
+        pos++;  // skip comma
+        found_comma = true;
+    }
+    return found_comma;
+}
+
+/**
+ * @brief Parse a comma-separated list of quoted strings into a vector
+ *
+ * Parses the syntax: "val1", "val2", "val3"
+ *
+ * @param value Input string to parse
+ * @return Vector of unquoted string values
+ */
+static inline std::vector<std::string> parseStringList(const std::string& value) {
+    std::vector<std::string> result;
+    size_t pos = 0;
+    while (pos < value.size()) {
+        while (pos < value.size() && (std::isspace((unsigned char)value[pos]) || value[pos] == ',')) pos++;
+        if (pos >= value.size()) break;
+        if (value[pos] != '"' && value[pos] != '\'') break;
+        char quote = value[pos++];
+        size_t start = pos;
+        while (pos < value.size() && value[pos] != quote) pos++;
+        if (pos >= value.size()) break;  // Malformed, skip
+        result.push_back(value.substr(start, pos - start));
+        pos++;  // skip closing quote
+    }
+    return result;
+}
+
 /**
  * @brief Check if a string represents a valid numeric value
  *
@@ -211,6 +276,11 @@ static inline SettingValue makeValue(const std::string &value)
 {
     if(value.starts_with('"') || value.starts_with('\''))
     {
+        // Check for comma-separated list of quoted strings: "v1", "v2", "v3"
+        if (isStringList(value)) {
+            return parseStringList(value);
+        }
+
         if (value.length() < 2) {
             std::cerr << "WARNING: Invalid quoted value: " << value << std::endl;
             return SettingValue(std::string(""));
